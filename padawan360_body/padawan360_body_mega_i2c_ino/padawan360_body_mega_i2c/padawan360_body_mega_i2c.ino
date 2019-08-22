@@ -1,17 +1,31 @@
  
 // =======================================================================================
-// /////////////////////////Padawan360 Body Code - Mega I2C v1.1 ////////////////////////////////////
+// /////////////////////////Padawan360 Body Code - Mega I2C v1.4 ////////////////////////////////////
 // =======================================================================================
 /*
 
-
-v1.1
-by Steven Sloan (with code taken from Robert Corvus and Andy Smith (locqust))
+v1.4
+by Steven Sloan 
 Code for YX5300 sound card added (Code for Sparkfun MP3 Trigger retained but not tested)
-Code for L298N Dome motor driver added - but not tested (Code for Syren motor controller retained but not tested)
+Code for L298N Dome motor driver added (Code for Syren motor controller retained but not tested)
 Serial connection to FlthyHP breakout board added.  Removed I2C comms to FlthyHP.
 Added additional key combinations for extra sounds and actions.
 
+v1.3 by Andy Smith (locqust)
+-added in code to move automation to a function so can leave him chatting without controller being on
+- code kindly supplied by Tony (DRK-N1GT)
+
+v1.2 by Andy Smith (locqust)
+-added in my list of expanded sound files and their associated command triggers. Sound files taken from BHD's setup
+
+v1.1
+by Robert Corvus
+- fixed inverse throttle on right turn
+-   where right turn goes full throttle on slight right and slow when all the way right
+- fixed left-shifted deadzone for turning
+- fixed left turn going in opposite direction
+- fixed default baud rate for new syren10
+- clarified variable names
 
 V1.0
 by Dan Kraus
@@ -38,7 +52,7 @@ Sparkfun MP3 Trigger
 
 This sketch supports I2C and calls events on many sound effect actions to control lights and sounds.
 It is NOT set up for Dan's method of using the serial packet to transfer data up to the dome
-to trigger some light effects.If you want that, you'll need to reference DanF's original.
+to trigger some light effects.If you want that, you'll need to reference DanF's original Padawan code.
 
 It uses Hardware Serial pins on the Mega to control Sabertooth and Syren
 
@@ -125,11 +139,17 @@ const int YX5300RATE = 9600;
 #define EXTINGUISHERPIN 3
 
 #include <Sabertooth.h>
+#include <SyRenSimplified.h>
+#include <Servo.h>
 #include <MP3Trigger.h>
 #include <Wire.h>
 #include <XBOXRECV.h>
 #include <SoftwareSerial.h>
 
+//#include <SoftwareSerial.h>
+// These are the pins for the Sabertooth and Syren
+//SoftwareSerial Sabertooth2xSerial(NOT_A_PIN, 4);
+//SoftwareSerial Syren10Serial(2, 5);
 
 /////////////////////////////////////////////////////////////////
 //Serial connection to Flthys HP's
@@ -140,6 +160,13 @@ SoftwareSerial FlthySerial(FlthyRXPin, FlthyTXPin);
 
 Sabertooth Sabertooth2x(128, Serial1);
 Sabertooth Syren10(128, Serial2);
+/////////////////////////////////////////////////////////////////
+//Sabertooth Sabertooth2x(128, Sabertooth2xSerial);
+//#if defined(SYRENSIMPLE)
+//SyRenSimplified Syren10(Syren10Serial); // Use SWSerial as the serial port.
+//#else
+//Sabertooth Syren10(128, Syren10Serial);
+//#endif
 
 // Satisfy IDE, which only needs to see the include statement in the ino.
 #ifdef dobogusinclude
@@ -162,10 +189,10 @@ int turnDirection = 20;
 // Action number used to randomly choose a sound effect or a dome turn
 byte automateAction = 0;
 
-char driveThrottle = 0; //int driveThrottle = 0;
-char rightStickValue = 0; //int rightStick = 0;
-int domeThrottle = 0; //int domeThrottle = 0;
-char turnThrottle = 0; //int turnThrottle = 0;
+char driveThrottle = 0; 
+char rightStickValue = 0; 
+char domeThrottle = 0; //int domeThrottle = 0; //ssloan
+char turnThrottle = 0; 
 
 boolean firstLoadOnConnect = false;
 boolean manuallyDisabledController = false;
@@ -257,7 +284,44 @@ String mp3Answer;           // Answer from the MP3.
 //=====================================
 
 void setup() {
-  Serial.begin(9600);
+//  //Syren10Serial.begin(DOMEBAUDRATE);
+//  //#if defined(SYRENSIMPLE)
+//  //  Syren10.motor(0);
+//  //#else
+//  //  Syren10.autobaud();
+//  //#endif
+//
+//  // 9600 is the default baud rate for Sabertooth packet serial.
+//  //Sabertooth2xSerial.begin(9600);
+//  // Send the autobaud command to the Sabertooth controller(s).
+//  //Sabertooth2x.autobaud();
+//  /* NOTE: *Not all* Sabertooth controllers need this command.
+//  It doesn't hurt anything, but V2 controllers use an
+//  EEPROM setting (changeable with the function setBaudRate) to set
+//  the baud rate instead of detecting with autobaud.
+//  If you have a 2x12, 2x25 V2, 2x60 or SyRen 50, you can remove
+//  the autobaud line and save yourself two seconds of startup delay.
+//  */
+//
+//  Sabertooth2x.setTimeout(950);
+//  #if !defined(SYRENSIMPLE)
+//    Syren10.setTimeout(950);
+//  #endif
+//
+//  #if !defined(SYRENSIMPLE)
+//  Syren10.setTimeout(950);
+//  #endif
+//
+//  // The Sabertooth won't act on mixed mode packet serial commands until
+//  // it has received power levels for BOTH throttle and turning, since it
+//  // mixes the two together to get diff-drive power levels for both motors.
+//  Sabertooth2x.drive(0);
+//  Sabertooth2x.turn(0);
+//
+//  pinMode(EXTINGUISHERPIN, OUTPUT);
+//  digitalWrite(EXTINGUISHERPIN, HIGH);
+ 
+ Serial.begin(9600);
   Serial1.begin(SABERTOOTHBAUDRATE);
   Serial2.begin(DOMEBAUDRATE);
 
@@ -325,10 +389,10 @@ void setup() {
 
   // Wait for serial port to connect - used on Leonardo, Teensy and other boards with built-in USB CDC serial connection
   while (!Serial);
-  if (Usb.Init() == -1) {
-    //Serial.print(F("\r\nOSC did not start"));
-    while (1); //halt
-  }
+    if (Usb.Init() == -1) {
+      //Serial.print(F("\r\nOSC did not start"));
+      while (1); //halt
+    }
   //Serial.print(F("\r\nXbox Wireless Receiver Library Started"));
 }
 
@@ -367,6 +431,9 @@ void loop() {
         #endif
     Xbox.setLedMode(ROTATING, 0);
     manuallyDisabledController=false;
+    //triggerI2C(10, 0);
+    //domeData.ctl = 1; domeData.dsp = 0; ET.sendData();  
+    //Tell the dome that the controller is now connected
   }
   
   if (Xbox.getButtonClick(XBOX, 0)) {
