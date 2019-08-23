@@ -707,8 +707,8 @@ void loop() {
        //magic Panel event - Trace Down 1
        triggerI2C(20, 10);
     } else if (Xbox.getButtonPress(R2, 0)) {
-       //Proc/Jazz
-       Play_Sound(random(100, 139)); // Proc/Jazz
+       //Proc/Razz
+       Play_Sound(random(100, 138)); // Proc/Razz
        //logic lights random
        triggerI2C(10, 10);
     } else {
@@ -772,15 +772,15 @@ void loop() {
        //magic Panel event - Flash Q
        triggerI2C(20, 28);
     } else if (Xbox.getButtonPress(R2, 0)) {
-       //Proc/Jazz 
-       Play_Sound(random(139, 168));    // Proc/Jazz
+       //Scream/Whistle 
+       Play_Sound(random(139, 168));    // Scream/Whistle
        //logic lights, random
        triggerI2C(10, 0);
        //magic Panel event - Compress 2
        triggerI2C(20, 19);
     } else {
-       //ohh/sent
-       Play_Sound(random(25, 32)); // ohh/sent  
+       //ohh (Sad Sound)
+       Play_Sound(random(25, 31)); // ohh (Sad Sound)  
        //logic lights, random
        triggerI2C(10, 0);
     }
