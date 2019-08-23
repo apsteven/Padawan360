@@ -13,7 +13,7 @@
 // DanF, Paul Murphy (JoyMonkey), John V, Michael Erwin, Michael Smith, Roger Moolay, Chris Reiff and Brad Oakley
 //
 // V1.7 Edited to allow use of Arduino Pro Mini Breakout rev 1.6 rather than Teeces Rear Logic Display
-// Select 2 for CONTROLLER type below if using breakout board
+// Select 2 for CONTROLLERtype below if using breakout board
 // Use "PSI Front" pins for the Front Logic Displays and front PSI chain
 // Use "PSI Rear" pins for rear PSI
 //
