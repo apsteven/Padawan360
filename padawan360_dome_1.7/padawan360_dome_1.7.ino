@@ -12,7 +12,8 @@
 // Much of this code is from various sources including...
 // DanF, Paul Murphy (JoyMonkey), John V, Michael Erwin, Michael Smith, Roger Moolay, Chris Reiff and Brad Oakley
 //
-// V1.7 Edited to allow use of Arduino Pro Mini Breakout rev 1.6 rather than Teeces Rear Logic Display
+// V1.7 Edited to allow use of Arduino Pro Mini Breakout rev 1.6 without a Teeces Rear Logic Display
+// This allows the use of 2x PSI boards and 2x Front Logic boards for droids without Rear Logics (e.d. R5-D4)
 // Select 2 for CONTROLLERtype below if using breakout board
 // Use "PSI Front" pins for the Front Logic Displays and front PSI chain
 // Use "PSI Rear" pins for rear PSI
