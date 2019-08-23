@@ -202,7 +202,8 @@ int turnDirection = 20;
 byte automateAction = 0;
 
 char driveThrottle = 0; 
-char rightStickValue = 0; 
+//char rightStickValue = 0; 
+int throttleStickValue = 0;
 int domeThrottle = 0; //int domeThrottle = 0; //ssloan
 char turnThrottle = 0; 
 
@@ -484,7 +485,7 @@ void loop() {
       Xbox.setLedMode(ROTATING, 0);
         #ifdef MP3_YX5300
           sendCommand(CMD_PLAY_W_INDEX, 53);
-          Serial.println("enable/disable sound");
+
         #else
           mp3Trigger.play(53); 
         #endif
@@ -1120,6 +1121,16 @@ void triggerAutomation(){
       // sets the mix, max seconds between automation actions - sounds and dome movement
       automateDelay = random(5,15);
     }
+}
+
+void Play_Sound(int Track_Num) {
+ 
+        #ifdef MP3_YX5300
+          sendCommand(CMD_PLAY_W_INDEX, Track_Num);
+        #else
+          mp3Trigger.play(Track_Num);  
+        #endif 
+ 
 }
 
 /********************************************************************************/
