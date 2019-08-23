@@ -1,8 +1,11 @@
  
 // =======================================================================================
-// /////////////////////////Padawan360 Body Code - Mega I2C v1.4 ////////////////////////////////////
+// /////////////////////////Padawan360 Body Code - Mega I2C v2.0 ////////////////////////////////////
 // =======================================================================================
 /*
+
+v2.0 Changes:
+- Makes left analog stick default drive control stick. Configurable between left or right stick via isLeftStickDrive 
 
 v1.4
 by Steven Sloan 
@@ -31,6 +34,7 @@ V1.0
 by Dan Kraus
 dskraus@gmail.com
 Astromech: danomite4047
+Project Site: https://github.com/dankraus/padawan360/
 
 Heavily influenced by DanF's Padwan code which was built for Arduino+Wireless PS2
 controller leveraging Bill Porter's PS2X Library. I was running into frequent disconnect
@@ -83,18 +87,26 @@ Pins in use
 
 //************************** Set speed and turn speeds here************************************//
 
+// SPEED AND TURN SPEEDS
 //set these 3 to whatever speeds work for you. 0-stop, 127-full speed.
 const byte DRIVESPEED1 = 50;
-//Recommend beginner: 50 to 75, experienced: 100 to 127, I like 100.
+// Recommend beginner: 50 to 75, experienced: 100 to 127, I like 100.
+// These may vary based on your drive system and power system
 const byte DRIVESPEED2 = 100;
 //Set to 0 if you only want 2 speeds.
-const byte DRIVESPEED3 = 127; 
+const byte DRIVESPEED3 = 127;
 
+// Default drive speed at startup
 byte drivespeed = DRIVESPEED1;
 
 // the higher this number the faster the droid will spin in place, lower - easier to control.
 // Recommend beginner: 40 to 50, experienced: 50 $ up, I like 70
+// This may vary based on your drive system and power system
 const byte TURNSPEED = 40;
+
+// Set isLeftStickDrive to true for driving  with the left stick
+// Set isLeftStickDrive to false for driving with the right stick (legacy and original configuration)
+boolean isLeftStickDrive = true; 
 
 // If using a speed controller for the dome, sets the top speed. You'll want to vary it potenitally
 // depending on your motor. My Pittman is really fast so I dial this down a ways from top speed.
@@ -179,7 +191,7 @@ byte vol = 20;
 // 0 = drive motors off ( right stick disabled ) at start
 boolean isDriveEnabled = false;
 
-// Automated function variables
+// Automated functionality
 // Used as a boolean to turn on/off automated functions like periodic random sounds and periodic dome turns
 boolean isInAutomationMode = false;
 unsigned long automateMillis = 0;
@@ -191,10 +203,17 @@ byte automateAction = 0;
 
 char driveThrottle = 0; 
 char rightStickValue = 0; 
-char domeThrottle = 0; //int domeThrottle = 0; //ssloan
+int domeThrottle = 0; //int domeThrottle = 0; //ssloan
 char turnThrottle = 0; 
 
 boolean firstLoadOnConnect = false;
+
+AnalogHatEnum throttleAxis;
+AnalogHatEnum turnAxis;
+AnalogHatEnum domeAxis;
+ButtonEnum speedSelectButton;
+ButtonEnum hpLightToggleButton;
+
 boolean manuallyDisabledController = false;
 
 // this is legacy right now. The rest of the sketch isn't set to send any of this
@@ -377,6 +396,21 @@ void setup() {
     mp3Trigger.setup();
     mp3Trigger.setVolume(vol);  
   #endif
+
+   if(isLeftStickDrive) {
+    throttleAxis = LeftHatY;
+    turnAxis = LeftHatX;
+    domeAxis = RightHatX;
+    speedSelectButton = L3;
+    hpLightToggleButton = R3;
+
+  } else {
+    throttleAxis = RightHatY;
+    turnAxis = RightHatX;
+    domeAxis = LeftHatX;
+    speedSelectButton = R3;
+    hpLightToggleButton = L3;
+  }
 
   // Start I2C Bus. The body is the master.
   Wire.begin();
@@ -876,8 +910,9 @@ void loop() {
     }
   }
 
-  // turn hp light on & off with Left Analog Stick Press (L3)
-  if (Xbox.getButtonClick(L3, 0))  {
+  // turn hp light on & off with Right Analog Stick Press (R3) for left stick drive mode
+  // turn hp light on & off with Left Analog Stick Press (L3) for right stick drive mode
+  if (Xbox.getButtonClick(hpLightToggleButton, 0))  {
     // if hp light is on, turn it off
     if (isHPOn) {
       isHPOn = false;
@@ -896,9 +931,10 @@ void loop() {
 
 
   // Change drivespeed if drive is enabled
-  // Press Right Analog Stick (R3)
+  // Press Left Analog Stick (L3) for left stick drive mode
+  // Press Right Analog Stick (R3) for right stick drive mode
   // Set LEDs for speed - 1 LED, Low. 2 LED - Med. 3 LED High
-  if (Xbox.getButtonClick(R3, 0) && isDriveEnabled) {
+  if (Xbox.getButtonClick(speedSelectButton, 0) && isDriveEnabled) {
     //if in lowest speed
     if (drivespeed == DRIVESPEED1) {
       //change to medium speed and play sound 3-tone
@@ -945,22 +981,22 @@ void loop() {
   // Xbox 360 analog stick values are signed 16 bit integer value
   // Sabertooth runs at 8 bit signed. -127 to 127 for speed (full speed reverse and  full speed forward)
   // Map the 360 stick values to our min/max current drive speed
-  rightStickValue = (map(Xbox.getAnalogHat(RightHatY, 0), -32768, 32767, -drivespeed, drivespeed));
-  if (rightStickValue > -DRIVEDEADZONERANGE && rightStickValue < DRIVEDEADZONERANGE) {
+  throttleStickValue = (map(Xbox.getAnalogHat(throttleAxis, 0), -32768, 32767, -drivespeed, drivespeed));
+  if (throttleStickValue > -DRIVEDEADZONERANGE && throttleStickValue < DRIVEDEADZONERANGE) {  
     // stick is in dead zone - don't drive
     driveThrottle = 0;
   } else {
-    if (driveThrottle < rightStickValue) {
-      if (rightStickValue - driveThrottle < (RAMPING + 1) ) {
+    if (driveThrottle < throttleStickValue) {
+      if (throttleStickValue - driveThrottle < (RAMPING + 1) ) {
         driveThrottle += RAMPING;
       } else {
-        driveThrottle = rightStickValue;
+         driveThrottle = throttleStickValue;
       }
-    } else if (driveThrottle > rightStickValue) {
-      if (driveThrottle - rightStickValue < (RAMPING + 1) ) {
+    } else if (driveThrottle > throttleStickValue) {
+      if (driveThrottle - throttleStickValue < (RAMPING + 1) ) {
         driveThrottle -= RAMPING;
       } else {
-        driveThrottle = rightStickValue;
+        driveThrottle = throttleStickValue;
       }
     }
   }
