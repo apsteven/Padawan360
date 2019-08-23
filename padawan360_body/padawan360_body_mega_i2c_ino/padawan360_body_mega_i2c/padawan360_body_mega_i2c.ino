@@ -475,10 +475,10 @@ void loop() {
     if (isDriveEnabled) {
       isDriveEnabled = false;
       Xbox.setLedMode(ROTATING, 0);
-      Play_Sound(53);
+      Play_Sound(53); // 3 Beeps
     } else {
       isDriveEnabled = true;
-      Play_Sound(52);
+      Play_Sound(52); // 2 Beeps
       // //When the drive is enabled, set our LED accordingly to indicate speed
       if (drivespeed == DRIVESPEED1) {
         Xbox.setLedOn(LED1, 0);
@@ -495,10 +495,10 @@ void loop() {
     if (isInAutomationMode) {
       isInAutomationMode = false;
       automateAction = 0;
-      Play_Sound(53);
+      Play_Sound(53); // 3 Beeps
     } else {
       isInAutomationMode = true;
-      Play_Sound(52);
+      Play_Sound(52); // 2 Beeps
     }
   }
 
@@ -584,7 +584,7 @@ void loop() {
   if (Xbox.getButtonClick(Y, 0)) {
      if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
        //Addams
-       Play_Sound(168);
+       Play_Sound(168); // Addams family tune 53s
        //logic lights
        triggerI2C(10, 19);
        //HPEvent Disco for 53s
@@ -593,30 +593,30 @@ void loop() {
        triggerI2C(20, 28);
      } else if (Xbox.getButtonPress(L1, 0)) {
         //Annoyed
-        Play_Sound(8);
+        Play_Sound(8); // Annoyed sounds
         //logic lights, random
         triggerI2C(10, 0);
     } else if (Xbox.getButtonPress(L2, 0)) {
         //Chortle
-        Play_Sound(2);
+        Play_Sound(2); // Chortle
         //logic lights, random
         triggerI2C(10, 0);
     } else if (Xbox.getButtonPress(R1, 0)) {
          //Theme
-        Play_Sound(9);
+        Play_Sound(9); // Star Wars Theme 5m 29s
         //logic lights, random
         triggerI2C(10, 0);
         //Magic Panel event - Trace up 1
         triggerI2C(20, 8);
     } else if (Xbox.getButtonPress(R2, 0)) {
         //More Alarms
-        Play_Sound(random(56, 71));
+        Play_Sound(random(56, 71)); // More alarms
         //logic lights, random
         triggerI2C(10, 0);
         //Magic Panel event - FlashAll 5s
         triggerI2C(20, 26);
     } else {
-        Play_Sound(random(13,17));
+        Play_Sound(random(13,17)); // Alarms
         //logic lights, random
         triggerI2C(10, 0);
         //Magic Panel event - FlashAll 5s
@@ -628,7 +628,7 @@ void loop() {
   if (Xbox.getButtonClick(A, 0)) {
    if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
        //Gangnam
-       Play_Sound(169);
+       Play_Sound(169); // Gangam Styles 24s
        //logic lights
        triggerI2C(10, 18);
        //HPEvent Disco for 24s
@@ -637,7 +637,7 @@ void loop() {
        triggerI2C(20, 28);
    } else if (Xbox.getButtonPress(L1, 0)) {
        //shortcircuit
-       Play_Sound(6);
+       Play_Sound(6); // Short Circuit
        //logic lights
        triggerI2C(10, 6);
        FlthySerial.print("A0070|5\r");
@@ -645,7 +645,7 @@ void loop() {
        triggerI2C(20, 25);
     } else if (Xbox.getButtonPress(L2, 0)) {
        //scream
-       Play_Sound(1);
+       Play_Sound(1); // Scream
        //logic lights, alarm
        triggerI2C(10, 1);
        //HPEvent pulse Red for 4 seconds
@@ -653,8 +653,8 @@ void loop() {
        //Magic Panel event - Alert 4s
        triggerI2C(20, 6);
     } else if (Xbox.getButtonPress(R1, 0)) {
-       //Imp March
-       Play_Sound(11);
+       //Imperial March
+       Play_Sound(11); // Imperial March 3m 5s
        //logic lights, alarm2Display
        triggerI2C(10, 11);
        //HPEvent - flash - I2C
@@ -663,12 +663,12 @@ void loop() {
        triggerI2C(20, 27);
     } else if (Xbox.getButtonPress(R2, 0)) {
        //More Misc
-       Play_Sound(random(72,99));  
+       Play_Sound(random(72,99));  // Misc Sounds
        //logic lights, random
        triggerI2C(10, 0);
     } else {
        //Misc noises
-       Play_Sound(random(17,25));      
+       Play_Sound(random(17,25)); // More Misc Sounds
        //logic lights, random
        triggerI2C(10, 0);
     }
@@ -678,7 +678,7 @@ void loop() {
   if (Xbox.getButtonClick(B, 0)) {
      if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
         //Muppets
-        Play_Sound(172);  
+        Play_Sound(173); // Muppets Tune 30s
         //logic lights
         triggerI2C(10, 17);
         //HPEvent Disco for 30s
@@ -687,19 +687,19 @@ void loop() {
         triggerI2C(20, 8);
      } else if (Xbox.getButtonPress(L1, 0)) {
         //patrol
-        Play_Sound(7);
+        Play_Sound(7); // Quiet Beeps
         //logic lights, random
         triggerI2C(10, 0);
     } else if (Xbox.getButtonPress(L2, 0)) {
         //DOODOO
-        Play_Sound(3);
+        Play_Sound(3); // DOODOO
        //logic lights, random
         triggerI2C(10, 0);
        //Magic Panel event - One loop sequence
         triggerI2C(20, 30);
     } else if (Xbox.getButtonPress(R1, 0)) {
        //Cantina
-       Play_Sound(10);
+       Play_Sound(10); // Cantina 2m 50s
        //logic lights bargraph
        triggerI2C(10, 10);
        // HPEvent 1 - Cantina Music - Disco - I2C
@@ -708,12 +708,12 @@ void loop() {
        triggerI2C(20, 10);
     } else if (Xbox.getButtonPress(R2, 0)) {
        //Proc/Jazz
-       Play_Sound(random(100, 139));
+       Play_Sound(random(100, 139)); // Proc/Jazz
        //logic lights random
        triggerI2C(10, 10);
     } else {
        //Sent/Hum
-       Play_Sound(random(32,52));
+       Play_Sound(random(32,52)); //Sent/Hum
        //logic lights, random
        triggerI2C(10, 0);
        //Magic Panel event - Expand 2
@@ -725,7 +725,7 @@ void loop() {
   if (Xbox.getButtonClick(X, 0)) {
    if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
        //Leia Short
-       Play_Sound(170);
+       Play_Sound(170); // Leia Short 6s
        //logic lights
        triggerI2C(10, 16);
        //HPEvent hologram for 6s
@@ -736,7 +736,7 @@ void loop() {
        triggerI2C(20, 23);
     } else if (Xbox.getButtonPress(L2, 0) && Xbox.getButtonPress(R1, 0)) {
        //Luke message
-       Play_Sound(171);
+       Play_Sound(171); // Luke Message 26s
        //logic lights
        triggerI2C(10, 15);
        //HPEvent hologram for 26s
@@ -746,7 +746,7 @@ void loop() {
        triggerI2C(20, 22);
     } else if (Xbox.getButtonPress(L1, 0)) {
        // leia message L1+X
-       Play_Sound(5);
+       Play_Sound(5); // Leia Long 35s
        //logic lights, leia message
        triggerI2C(10, 5);
        // Front HPEvent 1 - HoloMessage leia message 35 seconds
@@ -756,7 +756,7 @@ void loop() {
        triggerI2C(20, 22);
     } else if (Xbox.getButtonPress(L2, 0)) {
        //WolfWhistle
-       Play_Sound(4);
+       Play_Sound(4); // Wolf whistle
        //logic lights
        triggerI2C(10, 4);
        FlthySerial.print("A00312|5\r");
@@ -766,21 +766,21 @@ void loop() {
        triggerI2C(30, 4);    
     } else if (Xbox.getButtonPress(R1, 0)) {
        //Duel of the Fates 
-       Play_Sound(12);
+       Play_Sound(12); // Duel of Fates 4m 17s
        //logic lights, random
        triggerI2C(10, 0);
        //magic Panel event - Flash Q
        triggerI2C(20, 28);
     } else if (Xbox.getButtonPress(R2, 0)) {
        //Proc/Jazz 
-       Play_Sound(random(139, 168));    
+       Play_Sound(random(139, 168));    // Proc/Jazz
        //logic lights, random
        triggerI2C(10, 0);
        //magic Panel event - Compress 2
        triggerI2C(20, 19);
     } else {
        //ohh/sent
-       Play_Sound(random(139, 168));    
+       Play_Sound(random(25, 32)); // ohh/sent  
        //logic lights, random
        triggerI2C(10, 0);
     }
@@ -816,7 +816,7 @@ void loop() {
       //change to medium speed and play sound 3-tone
       drivespeed = DRIVESPEED2;
       Xbox.setLedOn(LED2, 0);
-      Play_Sound(53); 
+      Play_Sound(53); // 3 Beeps
       triggerI2C(10, 22);
       //magic Panel event - AllOn 5s
       triggerI2C(20, 3);
@@ -824,7 +824,7 @@ void loop() {
       //change to high speed and play sound scream
       drivespeed = DRIVESPEED3;
       Xbox.setLedOn(LED3, 0);
-      Play_Sound(1); 
+      Play_Sound(1);  // Scream
       triggerI2C(10, 23);
       //magic Panel event - AllOn 10s
       triggerI2C(20, 4);      
@@ -833,7 +833,7 @@ void loop() {
       //change to low speed and play sound 2-tone
       drivespeed = DRIVESPEED1;
       Xbox.setLedOn(LED1, 0);
-      Play_Sound(52); 
+      Play_Sound(52); // 2 Beeps
       triggerI2C(10, 21);
       //magic Panel event - AllOn 2s
       triggerI2C(20, 2);
@@ -931,7 +931,7 @@ void triggerAutomation(){
       automateAction = random(1, 5);
 
       if (automateAction > 1) {
-        Play_Sound(random(32, 52)); 
+        Play_Sound(random(32, 52)); // Sent/Hum
       }
       if (automateAction < 4) {
 
