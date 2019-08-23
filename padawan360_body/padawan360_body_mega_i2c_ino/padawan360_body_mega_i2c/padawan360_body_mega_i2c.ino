@@ -202,7 +202,8 @@ int turnDirection = 20;
 byte automateAction = 0;
 
 char driveThrottle = 0; 
-char rightStickValue = 0; 
+//char rightStickValue = 0; 
+int throttleStickValue = 0;
 int domeThrottle = 0; //int domeThrottle = 0; //ssloan
 char turnThrottle = 0; 
 
