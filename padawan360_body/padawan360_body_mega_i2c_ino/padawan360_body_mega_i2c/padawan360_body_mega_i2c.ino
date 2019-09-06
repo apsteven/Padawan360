@@ -887,20 +887,20 @@ void loop() {
 
           if (domeThrottle > -L298N_DOMEDEADZONERANGE && domeThrottle < L298N_DOMEDEADZONERANGE) {
             //stick in dead zone - don't spin dome
-            domeThrottle = 0;
+            L298N_Dome_Stop();            
           }
+          else {
+            if (domeThrottle > 0){
+              Dome_Direction =false;
+            }
+            else if (domeThrottle < 0){
+              Dome_Direction =true;
+            }
 
-          if (domeThrottle > 0){
-            Dome_Direction =false;
+            domeThrottle = abs(domeThrottle);
+
+            L298N_Dome_Move(Dome_Speed_Pin, domeThrottle ); // set the second variable as the speed you want the dome to move at
           }
-          else if (domeThrottle < 0){
-            Dome_Direction =true;
-          }
-
-          domeThrottle = abs(domeThrottle);
-
-          L298N_Dome_Move(Dome_Speed_Pin, domeThrottle ); // set the second variable as the speed you want the dome to move at
-
         #else
         
           domeThrottle = (map(Xbox.getAnalogHat(LeftHatX, 0), -32768, 32767, DOMESPEED, -DOMESPEED));
@@ -953,7 +953,7 @@ void triggerAutomation(){
         //************* Stop the dome motor **************
         #ifdef L298N 
 
-          L298N_Dome_Stop;
+          L298N_Dome_Stop();
 
         #endif      
 
@@ -1027,7 +1027,7 @@ if (Dome_Direction){
 else {
   digitalWrite(Dome_dir1_Pin,LOW); 
   digitalWrite(Dome_dir2_Pin,HIGH);
-//  Serial.println("Low-High");
+  Serial.println("Low-High");
 }  
 
 //Serial.println(Dome_Speed_PWM);
@@ -1036,8 +1036,8 @@ analogWrite(Dome_Speed_Pin, Dome_Speed_PWM);
 
 }
 
-void L298N_Dome_Stop( ) {
+void L298N_Dome_Stop() {
 
-analogWrite(Dome_Speed_Pin, 0);
-  
+  analogWrite(Dome_Speed_Pin, 0);
+ 
 }
