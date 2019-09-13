@@ -865,7 +865,7 @@ void loop() {
     }
   }
 
-  turnThrottle = map(Xbox.getAnalogHat(RightHatX, 0), -32768, 32767, -TURNSPEED, TURNSPEED);
+  turnThrottle = map(Xbox.getAnalogHat(turnAxis, 0), -32768, 32767, -TURNSPEED, TURNSPEED);
 
   // DRIVE!
   // right stick (drive)
@@ -883,7 +883,7 @@ void loop() {
   // DOME DRIVE!
         #ifdef L298N
 
-          domeThrottle = (map(Xbox.getAnalogHat(LeftHatX, 0), -32768, 32767,-255, 255));
+          domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767,-255, 255));
 
           if (domeThrottle > -L298N_DOMEDEADZONERANGE && domeThrottle < L298N_DOMEDEADZONERANGE) {
             //stick in dead zone - don't spin dome
@@ -903,7 +903,7 @@ void loop() {
           }
         #else
         
-          domeThrottle = (map(Xbox.getAnalogHat(LeftHatX, 0), -32768, 32767, DOMESPEED, -DOMESPEED));
+          domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767, DOMESPEED, -DOMESPEED));
           
           if (domeThrottle > -DOMEDEADZONERANGE && domeThrottle < DOMEDEADZONERANGE) {
             //stick in dead zone - don't spin dome
