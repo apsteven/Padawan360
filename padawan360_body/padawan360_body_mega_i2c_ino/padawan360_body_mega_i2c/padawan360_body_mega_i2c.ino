@@ -70,9 +70,9 @@ Pins in use
 3 = EXTINGUISHER relay pin
 5 = Rx to YX5300 MP3 player
 6 = Tx to YX5300 MP3 player
-8 = L298N Dome Speed (ENA)
-10 = L298N Dome Dir1 pin (IN1)
-11 = L298N Dome Dir2 pin (IN2)
+//8 = L298N Dome Speed (ENA)
+//10 = L298N Dome Dir1 pin (IN1)
+//11 = L298N Dome Dir2 pin (IN2)
 
 14 = Serial3 (Tx3) = FlthyHP 
 15 = Serial3 (Rx3) = FlthpHP
@@ -237,14 +237,14 @@ MP3Trigger mp3Trigger;
 USB Usb;
 XBOXRECV Xbox(&Usb);
 
-/****************** L298N Configuration  **********************/
-#define L298N        // Uncomment if using an L298N motor controller for the dome
-int Dome_Speed_Pin = 8; 
-int Dome_dir1_Pin = 10; 
-int Dome_dir2_Pin = 11;  
-int Dome_Speed_PWM = 0;
-boolean Dome_Direction = false;
-const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value 
+///****************** L298N Configuration  **********************/
+//#define L298N        // Uncomment if using an L298N motor controller for the dome
+//int Dome_Speed_Pin = 8; 
+//int Dome_dir1_Pin = 10; 
+//int Dome_dir2_Pin = 11;  
+//int Dome_Speed_PWM = 0;
+//boolean Dome_Direction = false;
+//const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value 
 
 /****************** YX5300 Configuration  **********************/
 #define MP3_YX5300   //Uncomment if using a YX5300 for sound
@@ -345,11 +345,11 @@ void setup() {
   Serial1.begin(SABERTOOTHBAUDRATE);
   Serial2.begin(DOMEBAUDRATE);
 
-#ifdef L298N
-  pinMode(Dome_Speed_Pin,OUTPUT); 
-  pinMode(Dome_dir1_Pin,OUTPUT); 
-  pinMode(Dome_dir2_Pin,OUTPUT);
-#endif
+//#ifdef L298N
+//  pinMode(Dome_Speed_Pin,OUTPUT); 
+//  pinMode(Dome_dir1_Pin,OUTPUT); 
+//  pinMode(Dome_dir2_Pin,OUTPUT);
+//#endif
 
 //Flthy HP
   FlthySerial.begin(FlthyBAUD);
@@ -441,7 +441,7 @@ void loop() {
     Sabertooth2x.turn(0);
     Syren10.motor(1, 0);
     firstLoadOnConnect = false;
-    L298N_Dome_Stop;
+//    L298N_Dome_Stop;
     // If controller is disconnected, but was in automation mode, then droid will continue
     // to play random sounds and dome movements
     if(isInAutomationMode){
@@ -881,27 +881,27 @@ void loop() {
   }
 
   // DOME DRIVE!
-        #ifdef L298N
-
-          domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767,-255, 255));
-
-          if (domeThrottle > -L298N_DOMEDEADZONERANGE && domeThrottle < L298N_DOMEDEADZONERANGE) {
-            //stick in dead zone - don't spin dome
-            L298N_Dome_Stop();            
-          }
-          else {
-            if (domeThrottle > 0){
-              Dome_Direction =false;
-            }
-            else if (domeThrottle < 0){
-              Dome_Direction =true;
-            }
-
-            domeThrottle = abs(domeThrottle);
-
-            L298N_Dome_Move(Dome_Speed_Pin, domeThrottle ); // set the second variable as the speed you want the dome to move at
-          }
-        #else
+//        #ifdef L298N
+//
+//          domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767,-255, 255));
+//
+//          if (domeThrottle > -L298N_DOMEDEADZONERANGE && domeThrottle < L298N_DOMEDEADZONERANGE) {
+//            //stick in dead zone - don't spin dome
+//            L298N_Dome_Stop();            
+//          }
+//          else {
+//            if (domeThrottle > 0){
+//              Dome_Direction =false;
+//            }
+//            else if (domeThrottle < 0){
+//              Dome_Direction =true;
+//            }
+//
+//            domeThrottle = abs(domeThrottle);
+//
+//            L298N_Dome_Move(Dome_Speed_Pin, domeThrottle ); // set the second variable as the speed you want the dome to move at
+//          }
+//        #else
         
           domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767, DOMESPEED, -DOMESPEED));
           
@@ -912,7 +912,7 @@ void loop() {
         
           Syren10.motor(1, domeThrottle);
 
-        #endif
+//        #endif
 
 } // END loop()
 
@@ -936,11 +936,11 @@ void triggerAutomation(){
       if (automateAction < 4) {
 
       //************* Move the dome for 750 msecs  **************
-      #ifdef L298N
-
-        L298N_Dome_Move(Dome_Speed_Pin,180 ); // set the second variable as the speed you want the dome to move at
-
-      #endif
+//      #ifdef L298N
+//
+//        L298N_Dome_Move(Dome_Speed_Pin,180 ); // set the second variable as the speed you want the dome to move at
+//
+//      #endif
         
       #if defined(SYRENSIMPLE)
         Syren10.motor(turnDirection);
@@ -951,11 +951,11 @@ void triggerAutomation(){
         delay(750);
 
         //************* Stop the dome motor **************
-        #ifdef L298N 
-
-          L298N_Dome_Stop();
-
-        #endif      
+//        #ifdef L298N 
+//
+//          L298N_Dome_Stop();
+//
+//        #endif      
 
       #if defined(SYRENSIMPLE)
         Syren10.motor(0);
@@ -1017,27 +1017,27 @@ void sendCommand(int8_t command, int16_t dat)
 Serial.println();
 }
 
-void L298N_Dome_Move(int Dome_Speed_Pin,int Dome_Speed_PWM ) {
-
-if (Dome_Direction){
-  digitalWrite(Dome_dir1_Pin,HIGH); 
-  digitalWrite(Dome_dir2_Pin,LOW);
-//  Serial.println("High-Low");
-} 
-else {
-  digitalWrite(Dome_dir1_Pin,LOW); 
-  digitalWrite(Dome_dir2_Pin,HIGH);
-  Serial.println("Low-High");
-}  
-
+//void L298N_Dome_Move(int Dome_Speed_Pin,int Dome_Speed_PWM ) {
+//
+//if (Dome_Direction){
+//  digitalWrite(Dome_dir1_Pin,HIGH); 
+//  digitalWrite(Dome_dir2_Pin,LOW);
+////  Serial.println("High-Low");
+//} 
+//else {
+//  digitalWrite(Dome_dir1_Pin,LOW); 
+//  digitalWrite(Dome_dir2_Pin,HIGH);
+//  Serial.println("Low-High");
+//}  
+//
 //Serial.println(Dome_Speed_PWM);
+//
+//analogWrite(Dome_Speed_Pin, Dome_Speed_PWM);
+//
+//}
 
-analogWrite(Dome_Speed_Pin, Dome_Speed_PWM);
-
-}
-
-void L298N_Dome_Stop() {
-
-  analogWrite(Dome_Speed_Pin, 0);
- 
-}
+//void L298N_Dome_Stop() {
+//
+//  analogWrite(Dome_Speed_Pin, 0);
+// 
+//}
