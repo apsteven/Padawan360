@@ -1,8 +1,11 @@
  
 // =======================================================================================
-// /////////////////////////Padawan360 Body Code - Mega I2C v1.4 ////////////////////////////////////
+// /////////////////////////Padawan360 Body Code - Mega I2C v2.0 ////////////////////////////////////
 // =======================================================================================
 /*
+
+v2.0 Changes:
+- Makes left analog stick default drive control stick. Configurable between left or right stick via isLeftStickDrive 
 
 v1.4
 by Steven Sloan 
@@ -31,6 +34,7 @@ V1.0
 by Dan Kraus
 dskraus@gmail.com
 Astromech: danomite4047
+Project Site: https://github.com/dankraus/padawan360/
 
 Heavily influenced by DanF's Padwan code which was built for Arduino+Wireless PS2
 controller leveraging Bill Porter's PS2X Library. I was running into frequent disconnect
@@ -83,18 +87,26 @@ Pins in use
 
 //************************** Set speed and turn speeds here************************************//
 
+// SPEED AND TURN SPEEDS
 //set these 3 to whatever speeds work for you. 0-stop, 127-full speed.
 const byte DRIVESPEED1 = 50;
-//Recommend beginner: 50 to 75, experienced: 100 to 127, I like 100.
+// Recommend beginner: 50 to 75, experienced: 100 to 127, I like 100.
+// These may vary based on your drive system and power system
 const byte DRIVESPEED2 = 100;
 //Set to 0 if you only want 2 speeds.
-const byte DRIVESPEED3 = 127; 
+const byte DRIVESPEED3 = 127;
 
+// Default drive speed at startup
 byte drivespeed = DRIVESPEED1;
 
 // the higher this number the faster the droid will spin in place, lower - easier to control.
 // Recommend beginner: 40 to 50, experienced: 50 $ up, I like 70
+// This may vary based on your drive system and power system
 const byte TURNSPEED = 40;
+
+// Set isLeftStickDrive to true for driving  with the left stick
+// Set isLeftStickDrive to false for driving with the right stick (legacy and original configuration)
+boolean isLeftStickDrive = true; 
 
 // If using a speed controller for the dome, sets the top speed. You'll want to vary it potenitally
 // depending on your motor. My Pittman is really fast so I dial this down a ways from top speed.
@@ -179,7 +191,7 @@ byte vol = 20;
 // 0 = drive motors off ( right stick disabled ) at start
 boolean isDriveEnabled = false;
 
-// Automated function variables
+// Automated functionality
 // Used as a boolean to turn on/off automated functions like periodic random sounds and periodic dome turns
 boolean isInAutomationMode = false;
 unsigned long automateMillis = 0;
@@ -190,11 +202,19 @@ int turnDirection = 20;
 byte automateAction = 0;
 
 char driveThrottle = 0; 
-char rightStickValue = 0; 
-char domeThrottle = 0; //int domeThrottle = 0; //ssloan
+//char rightStickValue = 0; 
+int throttleStickValue = 0;
+int domeThrottle = 0; //int domeThrottle = 0; //ssloan
 char turnThrottle = 0; 
 
 boolean firstLoadOnConnect = false;
+
+AnalogHatEnum throttleAxis;
+AnalogHatEnum turnAxis;
+AnalogHatEnum domeAxis;
+ButtonEnum speedSelectButton;
+ButtonEnum hpLightToggleButton;
+
 boolean manuallyDisabledController = false;
 
 // this is legacy right now. The rest of the sketch isn't set to send any of this
@@ -378,14 +398,25 @@ void setup() {
     mp3Trigger.setVolume(vol);  
   #endif
 
+   if(isLeftStickDrive) {
+    throttleAxis = LeftHatY;
+    turnAxis = LeftHatX;
+    domeAxis = RightHatX;
+    speedSelectButton = L3;
+    hpLightToggleButton = R3;
+
+  } else {
+    throttleAxis = RightHatY;
+    turnAxis = RightHatX;
+    domeAxis = LeftHatX;
+    speedSelectButton = R3;
+    hpLightToggleButton = L3;
+  }
+
   // Start I2C Bus. The body is the master.
   Wire.begin();
 
-   #ifdef MP3_YX5300
-     sendCommand(CMD_PLAY_W_INDEX, 23);
-   #else
-     mp3Trigger.play(23);  
-   #endif
+  Play_Sound(23);
 
   // Wait for serial port to connect - used on Leonardo, Teensy and other boards with built-in USB CDC serial connection
   while (!Serial);
@@ -424,11 +455,7 @@ void loop() {
   // After the controller connects, Blink all the LEDs so we know drives are disengaged at start
   if (!firstLoadOnConnect) {
     firstLoadOnConnect = true;
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 21);
-        #else
-          mp3Trigger.play(21);  
-        #endif
+     Play_Sound(21);
     Xbox.setLedMode(ROTATING, 0);
     manuallyDisabledController=false;
     //triggerI2C(10, 0);
@@ -448,19 +475,10 @@ void loop() {
     if (isDriveEnabled) {
       isDriveEnabled = false;
       Xbox.setLedMode(ROTATING, 0);
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 53);
-          Serial.println("enable/disable sound");
-        #else
-          mp3Trigger.play(53); 
-        #endif
+      Play_Sound(53); // 3 Beeps
     } else {
       isDriveEnabled = true;
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 52);
-        #else
-          mp3Trigger.play(52);  
-        #endif
+      Play_Sound(52); // 2 Beeps
       // //When the drive is enabled, set our LED accordingly to indicate speed
       if (drivespeed == DRIVESPEED1) {
         Xbox.setLedOn(LED1, 0);
@@ -477,18 +495,10 @@ void loop() {
     if (isInAutomationMode) {
       isInAutomationMode = false;
       automateAction = 0;
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 53);
-        #else
-          mp3Trigger.play(53);  
-        #endif
+      Play_Sound(53); // 3 Beeps
     } else {
       isInAutomationMode = true;
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 52);
-        #else
-          mp3Trigger.play(52);  
-        #endif
+      Play_Sound(52); // 2 Beeps
     }
   }
 
@@ -574,11 +584,7 @@ void loop() {
   if (Xbox.getButtonClick(Y, 0)) {
      if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
        //Addams
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 168);
-        #else
-          mp3Trigger.play(168);  
-        #endif
+       Play_Sound(168); // Addams family tune 53s
        //logic lights
        triggerI2C(10, 19);
        //HPEvent Disco for 53s
@@ -586,55 +592,35 @@ void loop() {
        //Magic Panel event - Flash Q
        triggerI2C(20, 28);
      } else if (Xbox.getButtonPress(L1, 0)) {
-         //Annoyed
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 8);
-        #else
-          mp3Trigger.play(8);  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
+        //Annoyed
+        Play_Sound(8); // Annoyed sounds
+        //logic lights, random
+        triggerI2C(10, 0);
     } else if (Xbox.getButtonPress(L2, 0)) {
         //Chortle
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 2);
-        #else
-          mp3Trigger.play(2);  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
+        Play_Sound(2); // Chortle
+        //logic lights, random
+        triggerI2C(10, 0);
     } else if (Xbox.getButtonPress(R1, 0)) {
          //Theme
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 9);
-        #else
-          mp3Trigger.play(9);  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
-      //Magic Panel event - Trace up 1
-      triggerI2C(20, 8);
+        Play_Sound(9); // Star Wars Theme 5m 29s
+        //logic lights, random
+        triggerI2C(10, 0);
+        //Magic Panel event - Trace up 1
+        triggerI2C(20, 8);
     } else if (Xbox.getButtonPress(R2, 0)) {
         //More Alarms
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(56, 71));
-        #else
-          mp3Trigger.play(random(56, 71));  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
-      //Magic Panel event - FlashAll 5s
-      triggerI2C(20, 26);
+        Play_Sound(random(56, 71)); // More alarms
+        //logic lights, random
+        triggerI2C(10, 0);
+        //Magic Panel event - FlashAll 5s
+        triggerI2C(20, 26);
     } else {
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(13,17));
-        #else
-          mp3Trigger.play(random(13,17));  
-        #endif      
-      //logic lights, random
-      triggerI2C(10, 0);
-      //Magic Panel event - FlashAll 5s
-      triggerI2C(20, 26);
+        Play_Sound(random(13,17)); // Alarms
+        //logic lights, random
+        triggerI2C(10, 0);
+        //Magic Panel event - FlashAll 5s
+        triggerI2C(20, 26);
     }
   }
 
@@ -642,73 +628,49 @@ void loop() {
   if (Xbox.getButtonClick(A, 0)) {
    if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
        //Gangnam
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 169);
-        #else
-          mp3Trigger.play(169);
-        #endif
-      //logic lights
-      triggerI2C(10, 18);
-      //HPEvent Disco for 24s
-      FlthySerial.print("A0040|24\r");
-      //Magic Panel event - Flash Q
-      triggerI2C(20, 28);
+       Play_Sound(169); // Gangam Styles 24s
+       //logic lights
+       triggerI2C(10, 18);
+       //HPEvent Disco for 24s
+       FlthySerial.print("A0040|24\r");
+       //Magic Panel event - Flash Q
+       triggerI2C(20, 28);
    } else if (Xbox.getButtonPress(L1, 0)) {
-         //shortcircuit
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 6);
-        #else
-          mp3Trigger.play(6);  
-        #endif
-      //logic lights
-      triggerI2C(10, 6);
-      FlthySerial.print("A0070|5\r");
-      //Magic Panel event - Fade Out
-      triggerI2C(20, 25);
+       //shortcircuit
+       Play_Sound(6); // Short Circuit
+       //logic lights
+       triggerI2C(10, 6);
+       FlthySerial.print("A0070|5\r");
+       //Magic Panel event - Fade Out
+       triggerI2C(20, 25);
     } else if (Xbox.getButtonPress(L2, 0)) {
-         //scream
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 1);
-        #else
-          mp3Trigger.play(1);  
-        #endif
-      //logic lights, alarm
-      triggerI2C(10, 1);
-      //HPEvent pulse Red for 4 seconds
-      FlthySerial.print("A0031|4\r");
-      //Magic Panel event - Alert 4s
-      triggerI2C(20, 6);
+       //scream
+       Play_Sound(1); // Scream
+       //logic lights, alarm
+       triggerI2C(10, 1);
+       //HPEvent pulse Red for 4 seconds
+       FlthySerial.print("A0031|4\r");
+       //Magic Panel event - Alert 4s
+       triggerI2C(20, 6);
     } else if (Xbox.getButtonPress(R1, 0)) {
-        //Imp March
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 11);
-        #else
-          mp3Trigger.play(11);  
-        #endif
-      //logic lights, alarm2Display
-      triggerI2C(10, 11);
-      //HPEvent - flash - I2C
-      FlthySerial.print("A0030|175\r");
-      //magic Panel event - Flash V
-      triggerI2C(20, 27);
+       //Imperial March
+       Play_Sound(11); // Imperial March 3m 5s
+       //logic lights, alarm2Display
+       triggerI2C(10, 11);
+       //HPEvent - flash - I2C
+       FlthySerial.print("A0030|175\r");
+       //magic Panel event - Flash V
+       triggerI2C(20, 27);
     } else if (Xbox.getButtonPress(R2, 0)) {
-      //More Misc
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(72, 99));
-        #else
-          mp3Trigger.play(random(72, 99));
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
+       //More Misc
+       Play_Sound(random(72,99));  // Misc Sounds
+       //logic lights, random
+       triggerI2C(10, 0);
     } else {
-         //Misc noises
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(17,25));
-        #else
-          mp3Trigger.play(random(17,25));  
-        #endif        
-      //logic lights, random
-      triggerI2C(10, 0);
+       //Misc noises
+       Play_Sound(random(17,25)); // More Misc Sounds
+       //logic lights, random
+       triggerI2C(10, 0);
     }
   }
 
@@ -716,11 +678,7 @@ void loop() {
   if (Xbox.getButtonClick(B, 0)) {
      if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
         //Muppets
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 172);
-        #else
-          mp3Trigger.play(172);  
-        #endif
+        Play_Sound(173); // Muppets Tune 30s
         //logic lights
         triggerI2C(10, 17);
         //HPEvent Disco for 30s
@@ -728,156 +686,109 @@ void loop() {
         //Magic Panel event - Trace Up 1
         triggerI2C(20, 8);
      } else if (Xbox.getButtonPress(L1, 0)) {
-         //patrol
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 7);
-        #else
-          mp3Trigger.play(7);  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
+        //patrol
+        Play_Sound(7); // Quiet Beeps
+        //logic lights, random
+        triggerI2C(10, 0);
     } else if (Xbox.getButtonPress(L2, 0)) {
         //DOODOO
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 3);
-        #else
-          mp3Trigger.play(3);  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
-      //Magic Panel event - One loop sequence
-      triggerI2C(20, 30);
+        Play_Sound(3); // DOODOO
+       //logic lights, random
+        triggerI2C(10, 0);
+       //Magic Panel event - One loop sequence
+        triggerI2C(20, 30);
     } else if (Xbox.getButtonPress(R1, 0)) {
-        //Cantina
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 10);
-        #else
-          mp3Trigger.play(10);  
-        #endif
-      //logic lights bargrap
-      triggerI2C(10, 10);
-      // HPEvent 1 - Cantina Music - Disco - I2C
-      FlthySerial.print("A0040|165\r");
-      //magic Panel event - Trace Down 1
-      triggerI2C(20, 10);
+       //Cantina
+       Play_Sound(10); // Cantina 2m 50s
+       //logic lights bargraph
+       triggerI2C(10, 10);
+       // HPEvent 1 - Cantina Music - Disco - I2C
+       FlthySerial.print("A0040|165\r");
+       //magic Panel event - Trace Down 1
+       triggerI2C(20, 10);
     } else if (Xbox.getButtonPress(R2, 0)) {
-        //Proc/Jazz
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(100, 139));
-        #else
-          mp3Trigger.play(random(100, 139));  
-        #endif
-      //logic lights random
-      triggerI2C(10, 10);
+       //Proc/Razz
+       Play_Sound(random(100, 138)); // Proc/Razz
+       //logic lights random
+       triggerI2C(10, 10);
     } else {
-        //Sent/Hum
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(32,52));
-        #else
-          mp3Trigger.play(random(32, 52));  
-        #endif        
-      //logic lights, random
-      triggerI2C(10, 0);
-      //Magic Panel event - Expand 2
-      triggerI2C(20, 17);
+       //Sent/Hum
+       Play_Sound(random(32,52)); //Sent/Hum
+       //logic lights, random
+       triggerI2C(10, 0);
+       //Magic Panel event - Expand 2
+       triggerI2C(20, 17);
     }
   }
 
   // X Button and X combo Buttons
   if (Xbox.getButtonClick(X, 0)) {
    if (Xbox.getButtonPress(L1, 0) && Xbox.getButtonPress(R1, 0)) {
-      //Leia Short
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 170);
-        #else
-          mp3Trigger.play(170);  
-        #endif
-      //logic lights
-      triggerI2C(10, 16);
-      //HPEvent hologram for 6s
-      FlthySerial.print("S1|6\r"); 
-      //FlthySerial.print("R1014\r");       
-      //FlthySerial.print("A001|6\r"); 
-      //magic Panel event - Eye Scan
-      triggerI2C(20, 23);
+       //Leia Short
+       Play_Sound(170); // Leia Short 6s
+       //logic lights
+       triggerI2C(10, 16);
+       //HPEvent hologram for 6s
+       FlthySerial.print("S1|6\r"); 
+       //FlthySerial.print("R1014\r");       
+       //FlthySerial.print("A001|6\r"); 
+       //magic Panel event - Eye Scan
+       triggerI2C(20, 23);
     } else if (Xbox.getButtonPress(L2, 0) && Xbox.getButtonPress(R1, 0)) {
-      //Luke message
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 171);
-        #else
-          mp3Trigger.play(171);  
-        #endif
-      //logic lights
-      triggerI2C(10, 15);
-      //HPEvent hologram for 26s
-      FlthySerial.print("S1|26\r");
-      //FlthySerial.print("F001|26\r");
-      //magic Panel event - Cylon Row
-      triggerI2C(20, 22);
+       //Luke message
+       Play_Sound(171); // Luke Message 26s
+       //logic lights
+       triggerI2C(10, 15);
+       //HPEvent hologram for 26s
+       FlthySerial.print("S1|26\r");
+       //FlthySerial.print("F001|26\r");
+       //magic Panel event - Cylon Row
+       triggerI2C(20, 22);
     } else if (Xbox.getButtonPress(L1, 0)) {
-        // leia message L1+X
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 5);
-        #else
-          mp3Trigger.play(5);  
-        #endif
-      //logic lights, leia message
-      triggerI2C(10, 5);
-      // Front HPEvent 1 - HoloMessage leia message 35 seconds
-      FlthySerial.print("S1|35\r");
-      //FlthySerial.print("F001|35\r");
-      //magic Panel event - Cylon Row
-      triggerI2C(20, 22);
+       // leia message L1+X
+       Play_Sound(5); // Leia Long 35s
+       //logic lights, leia message
+       triggerI2C(10, 5);
+       // Front HPEvent 1 - HoloMessage leia message 35 seconds
+       FlthySerial.print("S1|35\r");
+       //FlthySerial.print("F001|35\r");
+       //magic Panel event - Cylon Row
+       triggerI2C(20, 22);
     } else if (Xbox.getButtonPress(L2, 0)) {
-         //WolfWhistle
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 4);
-        #else
-          mp3Trigger.play(4);  
-        #endif
-      //logic lights
-      triggerI2C(10, 4);
-      FlthySerial.print("A00312|5\r");
-      //magic Panel event - Heart
-      triggerI2C(20, 40);
-      // CBI panel event - Heart
-      triggerI2C(30, 4);    
+       //WolfWhistle
+       Play_Sound(4); // Wolf whistle
+       //logic lights
+       triggerI2C(10, 4);
+       FlthySerial.print("A00312|5\r");
+       //magic Panel event - Heart
+       triggerI2C(20, 40);
+       // CBI panel event - Heart
+       triggerI2C(30, 4);    
     } else if (Xbox.getButtonPress(R1, 0)) {
-        //Duel of the Fates 
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 12);
-        #else
-          mp3Trigger.play(12);  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
-      //magic Panel event - Flash Q
-      triggerI2C(20, 28);
+       //Duel of the Fates 
+       Play_Sound(12); // Duel of Fates 4m 17s
+       //logic lights, random
+       triggerI2C(10, 0);
+       //magic Panel event - Flash Q
+       triggerI2C(20, 28);
     } else if (Xbox.getButtonPress(R2, 0)) {
-        //Proc/Jazz 
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(139, 168));
-        #else
-          mp3Trigger.play(random(139, 168));  
-        #endif
-      //logic lights, random
-      triggerI2C(10, 0);
-      //magic Panel event - Compress 2
-      triggerI2C(20, 19);
+       //Scream/Whistle 
+       Play_Sound(random(139, 168));    // Scream/Whistle
+       //logic lights, random
+       triggerI2C(10, 0);
+       //magic Panel event - Compress 2
+       triggerI2C(20, 19);
     } else {
-        //ohh/sent
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(25, 32));
-        #else
-          mp3Trigger.play(random(25, 32));  
-        #endif      
-      //logic lights, random
-      triggerI2C(10, 0);
+       //ohh (Sad Sound)
+       Play_Sound(random(25, 31)); // ohh (Sad Sound)  
+       //logic lights, random
+       triggerI2C(10, 0);
     }
   }
 
-  // turn hp light on & off with Left Analog Stick Press (L3)
-  if (Xbox.getButtonClick(L3, 0))  {
+  // turn hp light on & off with Right Analog Stick Press (R3) for left stick drive mode
+  // turn hp light on & off with Left Analog Stick Press (L3) for right stick drive mode
+  if (Xbox.getButtonClick(hpLightToggleButton, 0))  {
     // if hp light is on, turn it off
     if (isHPOn) {
       isHPOn = false;
@@ -896,19 +807,16 @@ void loop() {
 
 
   // Change drivespeed if drive is enabled
-  // Press Right Analog Stick (R3)
+  // Press Left Analog Stick (L3) for left stick drive mode
+  // Press Right Analog Stick (R3) for right stick drive mode
   // Set LEDs for speed - 1 LED, Low. 2 LED - Med. 3 LED High
-  if (Xbox.getButtonClick(R3, 0) && isDriveEnabled) {
+  if (Xbox.getButtonClick(speedSelectButton, 0) && isDriveEnabled) {
     //if in lowest speed
     if (drivespeed == DRIVESPEED1) {
       //change to medium speed and play sound 3-tone
       drivespeed = DRIVESPEED2;
       Xbox.setLedOn(LED2, 0);
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 53);
-        #else
-          mp3Trigger.play(53);  
-        #endif
+      Play_Sound(53); // 3 Beeps
       triggerI2C(10, 22);
       //magic Panel event - AllOn 5s
       triggerI2C(20, 3);
@@ -916,11 +824,7 @@ void loop() {
       //change to high speed and play sound scream
       drivespeed = DRIVESPEED3;
       Xbox.setLedOn(LED3, 0);
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 1);
-        #else
-          mp3Trigger.play(1);  
-        #endif
+      Play_Sound(1);  // Scream
       triggerI2C(10, 23);
       //magic Panel event - AllOn 10s
       triggerI2C(20, 4);      
@@ -929,11 +833,7 @@ void loop() {
       //change to low speed and play sound 2-tone
       drivespeed = DRIVESPEED1;
       Xbox.setLedOn(LED1, 0);
-         #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, 52);
-        #else
-          mp3Trigger.play(52);  
-        #endif
+      Play_Sound(52); // 2 Beeps
       triggerI2C(10, 21);
       //magic Panel event - AllOn 2s
       triggerI2C(20, 2);
@@ -945,27 +845,27 @@ void loop() {
   // Xbox 360 analog stick values are signed 16 bit integer value
   // Sabertooth runs at 8 bit signed. -127 to 127 for speed (full speed reverse and  full speed forward)
   // Map the 360 stick values to our min/max current drive speed
-  rightStickValue = (map(Xbox.getAnalogHat(RightHatY, 0), -32768, 32767, -drivespeed, drivespeed));
-  if (rightStickValue > -DRIVEDEADZONERANGE && rightStickValue < DRIVEDEADZONERANGE) {
+  throttleStickValue = (map(Xbox.getAnalogHat(throttleAxis, 0), -32768, 32767, -drivespeed, drivespeed));
+  if (throttleStickValue > -DRIVEDEADZONERANGE && throttleStickValue < DRIVEDEADZONERANGE) {  
     // stick is in dead zone - don't drive
     driveThrottle = 0;
   } else {
-    if (driveThrottle < rightStickValue) {
-      if (rightStickValue - driveThrottle < (RAMPING + 1) ) {
+    if (driveThrottle < throttleStickValue) {
+      if (throttleStickValue - driveThrottle < (RAMPING + 1) ) {
         driveThrottle += RAMPING;
       } else {
-        driveThrottle = rightStickValue;
+         driveThrottle = throttleStickValue;
       }
-    } else if (driveThrottle > rightStickValue) {
-      if (driveThrottle - rightStickValue < (RAMPING + 1) ) {
+    } else if (driveThrottle > throttleStickValue) {
+      if (driveThrottle - throttleStickValue < (RAMPING + 1) ) {
         driveThrottle -= RAMPING;
       } else {
-        driveThrottle = rightStickValue;
+        driveThrottle = throttleStickValue;
       }
     }
   }
 
-  turnThrottle = map(Xbox.getAnalogHat(RightHatX, 0), -32768, 32767, -TURNSPEED, TURNSPEED);
+  turnThrottle = map(Xbox.getAnalogHat(turnAxis, 0), -32768, 32767, -TURNSPEED, TURNSPEED);
 
   // DRIVE!
   // right stick (drive)
@@ -983,27 +883,27 @@ void loop() {
   // DOME DRIVE!
         #ifdef L298N
 
-          domeThrottle = (map(Xbox.getAnalogHat(LeftHatX, 0), -32768, 32767,-255, 255));
+          domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767,-255, 255));
 
           if (domeThrottle > -L298N_DOMEDEADZONERANGE && domeThrottle < L298N_DOMEDEADZONERANGE) {
             //stick in dead zone - don't spin dome
-            domeThrottle = 0;
+            L298N_Dome_Stop();            
           }
+          else {
+            if (domeThrottle > 0){
+              Dome_Direction =false;
+            }
+            else if (domeThrottle < 0){
+              Dome_Direction =true;
+            }
 
-          if (domeThrottle > 0){
-            Dome_Direction =false;
+            domeThrottle = abs(domeThrottle);
+
+            L298N_Dome_Move(Dome_Speed_Pin, domeThrottle ); // set the second variable as the speed you want the dome to move at
           }
-          else if (domeThrottle < 0){
-            Dome_Direction =true;
-          }
-
-          domeThrottle = abs(domeThrottle);
-
-          L298N_Dome_Move(Dome_Speed_Pin, domeThrottle ); // set the second variable as the speed you want the dome to move at
-
         #else
         
-          domeThrottle = (map(Xbox.getAnalogHat(LeftHatX, 0), -32768, 32767, DOMESPEED, -DOMESPEED));
+          domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767, DOMESPEED, -DOMESPEED));
           
           if (domeThrottle > -DOMEDEADZONERANGE && domeThrottle < DOMEDEADZONERANGE) {
             //stick in dead zone - don't spin dome
@@ -1031,11 +931,7 @@ void triggerAutomation(){
       automateAction = random(1, 5);
 
       if (automateAction > 1) {
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, random(32, 52));
-        #else
-          mp3Trigger.play(random(32, 52));  // mp3Trigger.play(random(17, 167));
-        #endif     
+        Play_Sound(random(32, 52)); // Sent/Hum
       }
       if (automateAction < 4) {
 
@@ -1057,7 +953,7 @@ void triggerAutomation(){
         //************* Stop the dome motor **************
         #ifdef L298N 
 
-          L298N_Dome_Stop;
+          L298N_Dome_Stop();
 
         #endif      
 
@@ -1084,6 +980,16 @@ void triggerAutomation(){
       // sets the mix, max seconds between automation actions - sounds and dome movement
       automateDelay = random(5,15);
     }
+}
+
+void Play_Sound(int Track_Num) {
+ 
+        #ifdef MP3_YX5300
+          sendCommand(CMD_PLAY_W_INDEX, Track_Num);
+        #else
+          mp3Trigger.play(Track_Num);  
+        #endif 
+ 
 }
 
 /********************************************************************************/
@@ -1121,7 +1027,7 @@ if (Dome_Direction){
 else {
   digitalWrite(Dome_dir1_Pin,LOW); 
   digitalWrite(Dome_dir2_Pin,HIGH);
-//  Serial.println("Low-High");
+  Serial.println("Low-High");
 }  
 
 //Serial.println(Dome_Speed_PWM);
@@ -1130,8 +1036,8 @@ analogWrite(Dome_Speed_Pin, Dome_Speed_PWM);
 
 }
 
-void L298N_Dome_Stop( ) {
+void L298N_Dome_Stop() {
 
-analogWrite(Dome_Speed_Pin, 0);
-  
+  analogWrite(Dome_Speed_Pin, 0);
+ 
 }
