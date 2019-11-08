@@ -106,7 +106,7 @@ boolean isLeftStickDrive = true;
 // If using a speed controller for the dome, sets the top speed. You'll want to vary it potenitally
 // depending on your motor. My Pittman is really fast so I dial this down a ways from top speed.
 // Use a number up to 127 for serial
-const byte DOMESPEED = 90;
+const byte DOMESPEED = 127;
 
 // Ramping- the lower this number the longer R2 will take to speedup or slow down,
 // change this by incriments of 1
@@ -182,9 +182,9 @@ boolean isDriveEnabled = false;
 // Used as a boolean to turn on/off automated functions like periodic random sounds and periodic dome turns
 boolean isInAutomationMode = false;
 unsigned long automateMillis = 0;
-//byte automateDelay = random(5, 20); // set this to min and max seconds between sounds
+byte automateDelay = random(5, 20); // set this to min and max seconds between sounds
 ////How much the dome may turn during automation.
-//int turnDirection = 20;
+int turnDirection = 20;
 // Action number used to randomly choose a sound effect or a dome turn
 byte automateAction = 0;
 
@@ -206,7 +206,7 @@ boolean manuallyDisabledController = false;
 // this is legacy right now. The rest of the sketch isn't set to send any of this
 // data to another arduino like the original Padawan sketch does
 // right now just using it to track whether or not the HP light is on so we can
-// fire the correct I2C event to turn on/off the HP light.
+// fire the correct I2C event to turn on/off the HP light. 
 //struct SEND_DATA_STRUCTURE{
 //  //put your variable definitions here for the data you want to send
 //  //THIS MUST BE EXACTLY THE SAME ON THE OTHER ARDUINO
