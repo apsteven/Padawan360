@@ -447,11 +447,13 @@ void loop() {
       isInAutomationMode = false;
       automateAction = 0;
       Play_Sound(53); // 3 Beeps
+      FlthySerial.print("S4\r");//S4 function ssloan
     } else {
       isInAutomationMode = true;
       Play_Sound(52); // 2 Beeps
+      FlthySerial.print("S6\r");//S6 function
     }
-  }
+  } 
 
   // Plays random sounds or dome movements for automations when in automation mode
   if (isInAutomationMode) {
