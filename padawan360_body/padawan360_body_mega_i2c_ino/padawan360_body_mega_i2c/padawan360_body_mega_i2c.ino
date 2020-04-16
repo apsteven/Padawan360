@@ -62,7 +62,7 @@ It uses Hardware Serial pins on the Mega to control Sabertooth and Syren
 
 Set Sabertooth 2x25/2x12 Dip Switches 1 and 2 Down, All Others Up
 For SyRen Simple Serial Set Switches 1 and 2 Down, All Others Up
-For SyRen Simple Serial Set Switchs 2 & 4 Down, All Others Up
+For SyRen Packetized Serial Set Switchs 1, 2 & 4 Down, All Others Up
 Placed a 10K ohm resistor between S1 & GND on the SyRen 10 itself
 
 Pins in use
