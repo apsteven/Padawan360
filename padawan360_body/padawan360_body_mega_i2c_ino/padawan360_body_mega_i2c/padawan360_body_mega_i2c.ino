@@ -142,12 +142,7 @@ const int DOMEBAUDRATE = 9600;
 
 String hpEvent = "";
 char char_array[11];
-/*
-Remove this section SSLOAN
-// Set the baud rate for the YX5300 MP3 player
-// 9600 is the default baud rate for YX5300 packet serial.
-//const int YX5300RATE = 9600;
-*/
+
 // I have a pin set to pull a relay high/low to trigger my upside down compressed air like R2's extinguisher
 #define EXTINGUISHERPIN 3
 
@@ -242,62 +237,15 @@ const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value
 #define MP3_YX5300   //Uncomment if using a YX5300 for sound
 // Connections for serial interface to the YX5300 module
 const uint8_t YX5300_RX = 5;    // connect to TX of MP3 Player module
-const uint8_t YX5300_TX = 4;    // connect to RX of MP3 Player module
-//#define YX5300_RX 5  //should connect to TX of the Serial MP3 Player module. Remove SSLOAN
-//#define YX5300_TX 6  //connect to RX of the module. Remove SSLOAN
-
-const uint8_t PLAY_FOLDER = 1;   // tracks are all placed in this folder
+const uint8_t YX5300_TX = 6;    // connect to RX of MP3 Player module
 MD_YX5300 YX5300(YX5300_RX, YX5300_TX); 
-//SoftwareSerial YX5300(YX5300_RX, YX5300_TX); // Remove SSLOAN
 
 /*
 static int8_t Send_buf[8] = {0}; // Buffer for Send commands.  // BETTER LOCALLY
 //static uint8_t ansbuf[10] = {0}; // Buffer for the answers.    // BETTER LOCALLY
 */
 //static int8_t pre_vol, volume = 0x0f; // Volume. 0-30 DEC values. 0x0f = 15. 
-int volume = 12; //YX5300 Start volume
-String mp3Answer;           // Answer from the MP3.   
-
-//boolean playing = false;    // Sending 'p' the module switch to Play to Pause or viceversa.
-
-/************ YX5300 Command byte Definition **************************/
-/*  Remove this section SSLOAN
-
-#define CMD_NEXT_SONG     0X01  // Play next song.
-#define CMD_PREV_SONG     0X02  // Play previous song.
-#define CMD_PLAY_W_INDEX  0X03
-#define CMD_VOLUME_UP     0X04
-#define CMD_VOLUME_DOWN   0X05
-#define CMD_SET_VOLUME    0X06
-
-#define CMD_SNG_CYCL_PLAY 0X08  // Single Cycle Play.
-#define CMD_SEL_DEV       0X09
-#define CMD_SLEEP_MODE    0X0A
-#define CMD_WAKE_UP       0X0B
-#define CMD_RESET         0X0C
-#define CMD_PLAY          0X0D
-#define CMD_PAUSE         0X0E
-//#define CMD_PLAY_FOLDER_FILE 0X0F
-
-//#define CMD_STOP_PLAY     0X16
-//#define CMD_FOLDER_CYCLE  0X17
-//#define CMD_SHUFFLE_PLAY  0x18 //
-#define CMD_SET_SNGL_CYCL 0X19 // Set single cycle.
-
-#define CMD_SET_DAC 0X1A
-#define DAC_ON  0X00
-#define DAC_OFF 0X01
-  
-#define CMD_PLAY_W_VOL    0X22
-#define CMD_PLAYING_N     0x4C
-*/
-
-/************ Opitons **************************/  
-/*
-#define DEV_TF            0X02  
-#define SINGLE_CYCLE_ON   0X00
-#define SINGLE_CYCLE_OFF  0X01
-*/
+uint16_t volume =12; //YX5300 Start volume
 
 /*********************************************************************/
 
@@ -367,26 +315,9 @@ void setup() {
   digitalWrite(EXTINGUISHERPIN, HIGH);
 
   #ifdef MP3_YX5300
-
-   // initialize global libraries
-  YX5300.begin();
-  YX5300.setSynchronous(true);
-  YX5300.playFolderRepeat(PLAY_FOLDER);
-  processVolume(true);    // force these to set up the hardware
-  processSwitch(true);
-/*
-    YX5300.begin(YX5300RATE);
-//    sendCommand(CMD_RESET, 0x00);
-    delay(500);
-    sendCommand(CMD_SEL_DEV, DEV_TF); // Set input device as microSD card
-    Serial.println("Set microSD as input");
-    delay(200);
-    sendCommand(CMD_SET_VOLUME,volume);  //Set volume at 15 (HEX 0F). Volume can be set from 0-30 (0x001E)
-    Serial.println("Set volume to 15");
-//    sendCommand(SINGLE_CYCLE_OFF, 0x0001);
-//    Serial.println("Switch off cycle/loop");
-*/ 
- 
+    // initialize global libraries
+    YX5300.begin();
+    YX5300.volume(volume);
   #else
     mp3Trigger.setup();
     mp3Trigger.setVolume(vol);  
@@ -420,7 +351,6 @@ void setup() {
     }
   //Serial.print(F("\r\nXbox Wireless Receiver Library Started"));
 
-  
 }
 
 //============================
@@ -510,15 +440,11 @@ void loop() {
   // Volume Control of MP3 Trigger
   // Hold R1 and Press Up/down on D-pad to increase/decrease volume
   if (Xbox.getButtonClick(DOWN, 0)) {
-    // volume up
+    // volume down
     if (Xbox.getButtonPress(R1, 0)) {
       
        #ifdef MP3_YX5300
-         if (volume > 0) {
-           volume--;
-           YX5300.volume(volume);
-          //sendCommand(CMD_VOLUME_DOWN, 00);
-         }
+           YX5300.volumeDec();
       #else    
         if (vol > 0) {
           vol--;
@@ -529,15 +455,11 @@ void loop() {
     }
   }
   if (Xbox.getButtonClick(UP, 0)) {
-    //volume down
+    //volume up
     if (Xbox.getButtonPress(R1, 0)) {
 
        #ifdef MP3_YX5300
-         if (volume < 30) {
-           volume++;
-           YX5300.volume(volume);
-           //sendCommand(CMD_VOLUME_UP, 00);
-         }
+           YX5300.volumeInc();
       #else      
         if (vol < 255) {
           vol++;
@@ -983,39 +905,12 @@ void triggerAutomation(){
 void Play_Sound(int Track_Num) {
  
   #ifdef MP3_YX5300
-    YX5300.playTrack(Track_Num);
-    //sendCommand(CMD_PLAY_W_INDEX, Track_Num);
+     YX5300.playTrack(Track_Num);
   #else
      mp3Trigger.play(Track_Num);  
   #endif 
  
 }
-
-/********************************************************************************/
-/*Function: Send command to the YX5300 MP3                                         */
-/*Parameter:-int8_t command                                                     */
-/*Parameter:-int16_ dat  parameter for the command                              */
-/* Remove section SSLOAN
-void sendCommand(int8_t command, int16_t dat)
-{
-  delay(20);
-  Send_buf[0] = 0x7e;   //
-  Send_buf[1] = 0xff;   //
-  Send_buf[2] = 0x06;   // Len 
-  Send_buf[3] = command;//
-  Send_buf[4] = 0x01;   // 0x00 NO, 0x01 feedback
-  Send_buf[5] = (int8_t)(dat >> 8);  //datah
-  Send_buf[6] = (int8_t)(dat);       //datal
-  Send_buf[7] = 0xef;   //
-  for(uint8_t i=0; i<8; i++)
-  {
-    YX5300.write(Send_buf[i]) ;
-    Serial.print(Send_buf [i]);
-    Serial.print(" ");
-  }
-Serial.println();
-}
-*/
 
 void L298N_Dome_Move(int Dome_Speed_Pin,int Dome_Speed_PWM ) {
 
@@ -1039,4 +934,3 @@ void L298N_Dome_Stop() {
   analogWrite(Dome_Speed_Pin, 0);
  
 }
-
