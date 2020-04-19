@@ -261,7 +261,9 @@ String mp3Answer;           // Answer from the MP3.
 //boolean playing = false;    // Sending 'p' the module switch to Play to Pause or viceversa.
 
 /************ YX5300 Command byte Definition **************************/
-/*#define CMD_NEXT_SONG     0X01  // Play next song.
+/*  Remove this section SSLOAN
+
+#define CMD_NEXT_SONG     0X01  // Play next song.
 #define CMD_PREV_SONG     0X02  // Play previous song.
 #define CMD_PLAY_W_INDEX  0X03
 #define CMD_VOLUME_UP     0X04
