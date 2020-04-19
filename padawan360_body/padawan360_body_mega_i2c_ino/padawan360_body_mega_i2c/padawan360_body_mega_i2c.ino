@@ -9,8 +9,8 @@ v2.0 Changes:
 
 v1.4
 by Steven Sloan 
-Code for YX5300 sound card added (Code for Sparkfun MP3 Trigger retained but not tested)
-Code for L298N Dome motor driver added (Code for Syren motor controller retained but not tested)
+Code for YX5300 sound card added (Code for Sparkfun MP3 Trigger retained but not tested).  YX5300 arduino library at https://github.com/MajicDesigns/MD_YX5300
+Code for L298N Dome motor driver added (Code for Syren10 motor controller retained)
 Serial connection to FlthyHP breakout board added.  Removed I2C comms to FlthyHP.
 Added additional key combinations for extra sounds and actions.
 
@@ -142,11 +142,12 @@ const int DOMEBAUDRATE = 9600;
 
 String hpEvent = "";
 char char_array[11];
-
+/*
+Remove this section SSLOAN
 // Set the baud rate for the YX5300 MP3 player
 // 9600 is the default baud rate for YX5300 packet serial.
-const int YX5300RATE = 9600;
-
+//const int YX5300RATE = 9600;
+*/
 // I have a pin set to pull a relay high/low to trigger my upside down compressed air like R2's extinguisher
 #define EXTINGUISHERPIN 3
 
@@ -160,7 +161,7 @@ const int YX5300RATE = 9600;
 #include <SyRenSimplified.h>
 #include <Adafruit_PWMServoDriver.h>
 
-//#include <SoftwareSerial.h>
+#include <MD_YX5300.h> // https://github.com/MajicDesigns/MD_YX5300
 
 /////////////////////////////////////////////////////////////////
 //Serial connection to Flthys HP's
@@ -180,7 +181,7 @@ Sabertooth Syren10(128, Serial2);
 
 // Set some defaults for start up
 // 0 = full volume, 255 off
-byte vol = 20;
+byte vol = 20;  //Sparkfun MP3 player volume
 // false = drive motors off ( drive stick disabled ) at start
 boolean isDriveEnabled = false;
 
@@ -239,22 +240,28 @@ const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value
 
 /****************** YX5300 Configuration  **********************/
 #define MP3_YX5300   //Uncomment if using a YX5300 for sound
-#define YX5300_RX 5  //should connect to TX of the Serial MP3 Player module
-#define YX5300_TX 6  //connect to RX of the module
+// Connections for serial interface to the YX5300 module
+const uint8_t YX5300_RX = 5;    // connect to TX of MP3 Player module
+const uint8_t YX5300_TX = 4;    // connect to RX of MP3 Player module
+//#define YX5300_RX 5  //should connect to TX of the Serial MP3 Player module. Remove SSLOAN
+//#define YX5300_TX 6  //connect to RX of the module. Remove SSLOAN
 
-SoftwareSerial YX5300(YX5300_RX, YX5300_TX);
+const uint8_t PLAY_FOLDER = 1;   // tracks are all placed in this folder
+MD_YX5300 YX5300(YX5300_RX, YX5300_TX); 
+//SoftwareSerial YX5300(YX5300_RX, YX5300_TX); // Remove SSLOAN
 
+/*
 static int8_t Send_buf[8] = {0}; // Buffer for Send commands.  // BETTER LOCALLY
 //static uint8_t ansbuf[10] = {0}; // Buffer for the answers.    // BETTER LOCALLY
-
+*/
 //static int8_t pre_vol, volume = 0x0f; // Volume. 0-30 DEC values. 0x0f = 15. 
-int volume = 12;
+int volume = 12; //YX5300 Start volume
 String mp3Answer;           // Answer from the MP3.   
 
 //boolean playing = false;    // Sending 'p' the module switch to Play to Pause or viceversa.
 
 /************ YX5300 Command byte Definition **************************/
-#define CMD_NEXT_SONG     0X01  // Play next song.
+/*#define CMD_NEXT_SONG     0X01  // Play next song.
 #define CMD_PREV_SONG     0X02  // Play previous song.
 #define CMD_PLAY_W_INDEX  0X03
 #define CMD_VOLUME_UP     0X04
@@ -281,12 +288,14 @@ String mp3Answer;           // Answer from the MP3.
   
 #define CMD_PLAY_W_VOL    0X22
 #define CMD_PLAYING_N     0x4C
+*/
 
 /************ Opitons **************************/  
+/*
 #define DEV_TF            0X02  
 #define SINGLE_CYCLE_ON   0X00
 #define SINGLE_CYCLE_OFF  0X01
-
+*/
 
 /*********************************************************************/
 
@@ -356,6 +365,14 @@ void setup() {
   digitalWrite(EXTINGUISHERPIN, HIGH);
 
   #ifdef MP3_YX5300
+
+   // initialize global libraries
+  YX5300.begin();
+  YX5300.setSynchronous(true);
+  YX5300.playFolderRepeat(PLAY_FOLDER);
+  processVolume(true);    // force these to set up the hardware
+  processSwitch(true);
+/*
     YX5300.begin(YX5300RATE);
 //    sendCommand(CMD_RESET, 0x00);
     delay(500);
@@ -366,6 +383,8 @@ void setup() {
     Serial.println("Set volume to 15");
 //    sendCommand(SINGLE_CYCLE_OFF, 0x0001);
 //    Serial.println("Switch off cycle/loop");
+*/ 
+ 
   #else
     mp3Trigger.setup();
     mp3Trigger.setVolume(vol);  
@@ -495,9 +514,8 @@ void loop() {
        #ifdef MP3_YX5300
          if (volume > 0) {
            volume--;
-           Serial.println("volume ");
-           Serial.println(volume);
-           sendCommand(CMD_VOLUME_DOWN, 00);
+           YX5300.volume(volume);
+          //sendCommand(CMD_VOLUME_DOWN, 00);
          }
       #else    
         if (vol > 0) {
@@ -515,9 +533,8 @@ void loop() {
        #ifdef MP3_YX5300
          if (volume < 30) {
            volume++;
-           Serial.println("volume ");
-           Serial.println(volume);
-           sendCommand(CMD_VOLUME_UP, 00);
+           YX5300.volume(volume);
+           //sendCommand(CMD_VOLUME_UP, 00);
          }
       #else      
         if (vol < 255) {
@@ -963,11 +980,12 @@ void triggerAutomation(){
 
 void Play_Sound(int Track_Num) {
  
-        #ifdef MP3_YX5300
-          sendCommand(CMD_PLAY_W_INDEX, Track_Num);
-        #else
-          mp3Trigger.play(Track_Num);  
-        #endif 
+  #ifdef MP3_YX5300
+    YX5300.playTrack(Track_Num);
+    //sendCommand(CMD_PLAY_W_INDEX, Track_Num);
+  #else
+     mp3Trigger.play(Track_Num);  
+  #endif 
  
 }
 
@@ -975,7 +993,7 @@ void Play_Sound(int Track_Num) {
 /*Function: Send command to the YX5300 MP3                                         */
 /*Parameter:-int8_t command                                                     */
 /*Parameter:-int16_ dat  parameter for the command                              */
-
+/* Remove section SSLOAN
 void sendCommand(int8_t command, int16_t dat)
 {
   delay(20);
@@ -995,23 +1013,22 @@ void sendCommand(int8_t command, int16_t dat)
   }
 Serial.println();
 }
+*/
 
 void L298N_Dome_Move(int Dome_Speed_Pin,int Dome_Speed_PWM ) {
 
-if (Dome_Direction){
-  digitalWrite(Dome_dir1_Pin,HIGH); 
-  digitalWrite(Dome_dir2_Pin,LOW);
-//  Serial.println("High-Low");
-} 
-else {
-  digitalWrite(Dome_dir1_Pin,LOW); 
-  digitalWrite(Dome_dir2_Pin,HIGH);
-  Serial.println("Low-High");
-}  
-
-//Serial.println(Dome_Speed_PWM);
-
-analogWrite(Dome_Speed_Pin, Dome_Speed_PWM);
+  if (Dome_Direction){
+    digitalWrite(Dome_dir1_Pin,HIGH); 
+    digitalWrite(Dome_dir2_Pin,LOW);
+  //  Serial.println("High-Low");
+  } 
+  else {
+    digitalWrite(Dome_dir1_Pin,LOW); 
+    digitalWrite(Dome_dir2_Pin,HIGH);
+    Serial.println("Low-High");
+  }  
+  //Serial.println(Dome_Speed_PWM);
+  analogWrite(Dome_Speed_Pin, Dome_Speed_PWM);
 
 }
 
