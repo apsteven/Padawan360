@@ -9,7 +9,8 @@ v2.0 Changes:
 
 v1.4
 by Steven Sloan 
-Code for YX5300 sound card added (Code for Sparkfun MP3 Trigger retained but not tested).  YX5300 arduino library at https://github.com/MajicDesigns/MD_YX5300
+Code for YX5300 sound card added (Code for Sparkfun MP3 Trigger retained but not tested).  
+YX5300 arduino library at https://github.com/MajicDesigns/MD_YX5300
 Code for L298N Dome motor driver added (Code for Syren10 motor controller retained)
 Serial connection to FlthyHP breakout board added.  Removed I2C comms to FlthyHP.
 Added additional key combinations for extra sounds and actions.
