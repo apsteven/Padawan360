@@ -9,7 +9,7 @@ v2.0 Changes:
 
 v1.4
 by Steven Sloan 
-Code for YX5300 sound card added (Code for Sparkfun MP3 Trigger retained but not tested).  
+Code for YX5300 sound card added.Use "#define MP3_YX5300" if YX5300 is to be used (Code for Sparkfun MP3 Trigger retained but not tested).  
 YX5300 arduino library at https://github.com/MajicDesigns/MD_YX5300
 Code for L298N Dome motor driver added (Code for Syren10 motor controller retained)
 Serial connection to FlthyHP breakout board added.  Removed I2C comms to FlthyHP.
@@ -237,9 +237,11 @@ const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value
 /****************** YX5300 Configuration  **********************/
 #define MP3_YX5300   //Uncomment if using a YX5300 for sound
 // Connections for serial interface to the YX5300 module
-const uint8_t YX5300_RX = 5;    // connect to TX of MP3 Player module
-const uint8_t YX5300_TX = 6;    // connect to RX of MP3 Player module
-MD_YX5300 YX5300(YX5300_RX, YX5300_TX); 
+#ifdef MP3_YX5300
+  const uint8_t YX5300_RX = 5;    // connect to TX of MP3 Player module
+  const uint8_t YX5300_TX = 6;    // connect to RX of MP3 Player module
+  MD_YX5300 YX5300(YX5300_RX, YX5300_TX); 
+#endif
 
 /*
 static int8_t Send_buf[8] = {0}; // Buffer for Send commands.  // BETTER LOCALLY
