@@ -241,16 +241,10 @@ const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value
   const uint8_t YX5300_RX = 5;    // connect to TX of MP3 Player module
   const uint8_t YX5300_TX = 6;    // connect to RX of MP3 Player module
   MD_YX5300 YX5300(YX5300_RX, YX5300_TX); 
+  uint16_t volume =12; //YX5300 Start volume
 #endif
 
-/*
-static int8_t Send_buf[8] = {0}; // Buffer for Send commands.  // BETTER LOCALLY
-//static uint8_t ansbuf[10] = {0}; // Buffer for the answers.    // BETTER LOCALLY
-*/
-//static int8_t pre_vol, volume = 0x0f; // Volume. 0-30 DEC values. 0x0f = 15. 
-uint16_t volume =12; //YX5300 Start volume
-
-/*********************************************************************/
+/***************************************************************/
 
 //=====================================
 //   SETUP                           //
