@@ -11,12 +11,11 @@ v1.4
 by Steven Sloan 
 Code for YX5300 sound card added.Use "#define MP3_YX5300" if YX5300 is to be used (Code for Sparkfun MP3 Trigger retained but not tested).  
 YX5300 arduino library at https://github.com/MajicDesigns/MD_YX5300
-Code for L298N Dome motor driver added (Code for Syren10 motor controller retained)
 Serial connection to FlthyHP breakout board added.  Removed I2C comms to FlthyHP.
 Added additional key combinations for extra sounds and actions.
 
 v1.3 by Andy Smith (locqust)
--added in code to move automation to a function so can leave him chatting without controller being on
+- added in code to move automation to a function so can leave him chatting without controller being on
 - code kindly supplied by Tony (DRK-N1GT)
 
 v1.2 by Andy Smith (locqust)
@@ -25,7 +24,7 @@ v1.2 by Andy Smith (locqust)
 v1.1
 by Robert Corvus
 - fixed inverse throttle on right turn
--   where right turn goes full throttle on slight right and slow when all the way right
+- where right turn goes full throttle on slight right and slow when all the way right
 - fixed left-shifted deadzone for turning
 - fixed left turn going in opposite direction
 - fixed default baud rate for new syren10
@@ -50,6 +49,7 @@ Hardware:
 ***Arduino Mega 2560***
 USB Host Shield from circuits@home
 Microsoft Xbox 360 Controller
+Microsoft Xbox 360 Chatpad (Requires https://github.com/willtoth/USB_Host_Shield_2.0/tree/xbox-chatpad version of USB_Host_Shield_2.0 Library)
 Xbox 360 USB Wireless Reciver
 Sabertooth Motor Controller
 Syren Motor Controller
@@ -71,12 +71,9 @@ Pins in use
 3 = EXTINGUISHER relay pin
 5 = Rx to YX5300 MP3 player
 6 = Tx to YX5300 MP3 player
-8 = L298N Dome Speed (ENA)
-10 = L298N Dome Dir1 pin (IN1)
-11 = L298N Dome Dir2 pin (IN2)
 
 14 = Serial3 (Tx3) = FlthyHP 
-15 = Serial3 (Rx3) = FlthpHP
+15 = Serial3 (Rx3) = FlthyHP
 16 = Serial2 (Tx2) = Syren10 S1
 18 = Serial1 (Tx1) = Sabertooth 2x25 S1
 19 = Serial1 (Rx1) = Sabertooth 2x25 S2
@@ -225,15 +222,6 @@ MP3Trigger mp3Trigger;
 USB Usb;
 XBOXRECV Xbox(&Usb);
 
-/****************** L298N Configuration  **********************/
-//#define L298N        // Uncomment if using an L298N motor controller for the dome
-int Dome_Speed_Pin = 8; 
-int Dome_dir1_Pin = 10; 
-int Dome_dir2_Pin = 11;  
-int Dome_Speed_PWM = 0;
-boolean Dome_Direction = false;
-const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value 
-
 /****************** YX5300 Configuration  **********************/
 #define MP3_YX5300   //Uncomment if using a YX5300 for sound
 // Connections for serial interface to the YX5300 module
@@ -245,6 +233,10 @@ const byte L298N_DOMEDEADZONERANGE = 60; //Set this to the lowest value
 #endif
 
 /***************************************************************/
+
+/************* Xbox360 Chatpad Configuration  ******************/
+#define CHATPAD    //Uncomment if using a chatpad 
+bool orangeToggle = false;
 
 //=====================================
 //   SETUP                           //
@@ -273,12 +265,6 @@ void setup() {
   Serial.begin(9600);
   Serial1.begin(SABERTOOTHBAUDRATE);
   Serial2.begin(DOMEBAUDRATE);
-
-#ifdef L298N
-  pinMode(Dome_Speed_Pin,OUTPUT); 
-  pinMode(Dome_dir1_Pin,OUTPUT); 
-  pinMode(Dome_dir2_Pin,OUTPUT);
-#endif
 
 #if defined(SYRENSIMPLE)
   Syren10.motor(0);
@@ -364,9 +350,6 @@ void loop() {
     Sabertooth2x.turn(0);
     Syren10.motor(1, 0);
     firstLoadOnConnect = false;
-    #ifdef L298N
-      L298N_Dome_Stop;
-    #endif
     // If controller is disconnected, but was in automation mode, then droid will continue
     // to play random sounds and dome movements
     if(isInAutomationMode){
@@ -494,8 +477,9 @@ void loop() {
     }
   }
 
-
-  // GENERAL SOUND PLAYBACK AND DISPLAY CHANGING
+#if defined(CHATPAD)
+  Check_Chatpad();
+#endif
 
   // Y Button and Y combo buttons
   if (Xbox.getButtonClick(Y, 0)) {
@@ -798,28 +782,6 @@ void loop() {
   }
 
   // DOME DRIVE!
-        #ifdef L298N
-
-          domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767,-255, 255));
-
-          if (domeThrottle > -L298N_DOMEDEADZONERANGE && domeThrottle < L298N_DOMEDEADZONERANGE) {
-            //stick in dead zone - don't spin dome
-            L298N_Dome_Stop();            
-          }
-          else {
-            if (domeThrottle > 0){
-              Dome_Direction =false;
-            }
-            else if (domeThrottle < 0){
-              Dome_Direction =true;
-            }
-
-            domeThrottle = abs(domeThrottle);
-
-            L298N_Dome_Move(Dome_Speed_Pin, domeThrottle ); // set the second variable as the speed you want the dome to move at
-          }
-        #else
-        
           domeThrottle = (map(Xbox.getAnalogHat(domeAxis, 0), -32768, 32767, DOMESPEED, -DOMESPEED));
           
           if (domeThrottle > -DOMEDEADZONERANGE && domeThrottle < DOMEDEADZONERANGE) {
@@ -829,11 +791,10 @@ void loop() {
         
           Syren10.motor(1, domeThrottle);
 
-        #endif
 
 } // END loop()
 
-void triggerI2C(byte deviceID, byte eventID) {
+ void triggerI2C(byte deviceID, byte eventID) {
   Wire.beginTransmission(deviceID);
   Wire.write(eventID);
   Wire.endTransmission();
@@ -853,11 +814,6 @@ void triggerAutomation(){
       if (automateAction < 4) {
 
       //************* Move the dome for 750 msecs  **************
-      #ifdef L298N
-
-        L298N_Dome_Move(Dome_Speed_Pin,180 ); // set the second variable as the speed you want the dome to move at
-
-      #endif
         
       #if defined(SYRENSIMPLE)
         Syren10.motor(turnDirection);
@@ -868,12 +824,6 @@ void triggerAutomation(){
         delay(750);
 
         //************* Stop the dome motor **************
-        #ifdef L298N 
-
-          L298N_Dome_Stop();
-
-        #endif      
-
       #if defined(SYRENSIMPLE)
         Syren10.motor(0);
       #else
@@ -881,12 +831,6 @@ void triggerAutomation(){
       #endif
 
         //************* Change direction for next time **************
-        if (Dome_Direction) {
-          Dome_Direction = false;
-        } else {
-          Dome_Direction = true;  
-        }
-        
         if (turnDirection > 0) {
           turnDirection = -45;
         } else {
@@ -899,6 +843,172 @@ void triggerAutomation(){
     }
 }
 
+void Check_Chatpad() {
+
+  // GENERAL SOUND PLAYBACK AND DISPLAY CHANGING
+  if (Xbox.getChatpadModifierClick(MODIFER_ORANGEBUTTON)) {
+    orangeToggle = !orangeToggle;
+    Xbox.setChatpadLed(CHATPADLED_ORANGE, orangeToggle);
+  }
+
+  if (!orangeToggle) {
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D1, 0)) {
+       //Duel of the Fates 
+       Play_Sound(12); // Duel of Fates 4m 17s
+       //logic lights, random
+       triggerI2C(10, 0);
+       //magic Panel event - Flash Q
+       triggerI2C(20, 28);
+    }   
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D2, 0)) {
+         //Theme
+        Play_Sound(9); // Star Wars Theme 5m 29s
+        //logic lights, random
+        triggerI2C(10, 0);
+        //Magic Panel event - Trace up 1
+        triggerI2C(20, 8);
+    }   
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D3, 0)) {
+       //Imperial March
+       Play_Sound(11); // Imperial March 3m 5s
+       //logic lights, alarm2Display
+       triggerI2C(10, 11);
+       //HPEvent - flash - I2C
+       FlthySerial.print("A0030|175\r");
+       //magic Panel event - Flash V
+       triggerI2C(20, 27);
+    }   
+    
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D4, 0)) {
+       //Cantina
+       Play_Sound(10); // Cantina 2m 50s
+       //logic lights bargraph
+       triggerI2C(10, 10);
+       // HPEvent 1 - Cantina Music - Disco - I2C
+       FlthySerial.print("A0040|165\r");
+       //magic Panel event - Trace Down 1
+       triggerI2C(20, 10);
+    }   
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D8, 0)) {
+       //Muppets
+        Play_Sound(173); // Muppets Tune 30s
+        //logic lights
+        triggerI2C(10, 17);
+        //HPEvent Disco for 30s
+        FlthySerial.print("A0040|30\r");
+        //Magic Panel event - Trace Up 1
+        triggerI2C(20, 8);
+    }   
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D9, 0)) {
+       //Addams
+       Play_Sound(168); // Addams family tune 53s
+       //logic lights
+       triggerI2C(10, 19);
+       //HPEvent Disco for 53s
+       FlthySerial.print("A0040|53\r");
+       //Magic Panel event - Flash Q
+       triggerI2C(20, 28);
+    }   
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D0, 0)) {
+       //Gangnam
+       Play_Sound(169); // Gangam Styles 24s
+       //logic lights
+       triggerI2C(10, 18);
+       //HPEvent Disco for 24s
+       FlthySerial.print("A0040|24\r");
+       //Magic Panel event - Flash Q
+       triggerI2C(20, 28);
+    }   
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_W, 0)) {
+       //WolfWhistle
+       Play_Sound(4); // Wolf whistle
+       //logic lights
+       triggerI2C(10, 4);
+       FlthySerial.print("A00312|5\r");
+       //magic Panel event - Heart
+       triggerI2C(20, 40);
+       // CBI panel event - Heart
+       triggerI2C(30, 4);    
+    }
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_O, 0)) {
+
+    }
+    
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_S, 0)) {
+       //ohh (Sad Sound)
+       Play_Sound(random(25, 31)); // ohh (Sad Sound)  
+       //logic lights, random
+       triggerI2C(10, 0);
+    }
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D, 0)) {
+        //DOODOO
+        Play_Sound(3); // DOODOO
+       //logic lights, random
+        triggerI2C(10, 0);
+       //Magic Panel event - One loop sequence
+        triggerI2C(20, 30);
+    }
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_L, 0)) {
+       Play_Sound(5); // Leia Long 35s
+       //logic lights, leia message
+       triggerI2C(10, 5);
+       // Front HPEvent 1 - HoloMessage leia message 35 seconds
+       FlthySerial.print("S1|35\r");
+       //FlthySerial.print("F001|35\r");
+       //magic Panel event - Cylon Row
+       triggerI2C(20, 22);
+    }
+    
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_X, 0)) {
+       //shortcircuit
+       Play_Sound(6); // Short Circuit
+       //logic lights
+       triggerI2C(10, 6);
+       FlthySerial.print("A0070|5\r");
+       //Magic Panel event - Fade Out
+       triggerI2C(20, 25);
+    }
+
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_C, 0)) {
+        //Chortle
+        Play_Sound(2); // Chortle
+        //logic lights, random
+        triggerI2C(10, 0);
+    }
+        
+  }
+  else {
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_D1, 0)) {
+        Play_Sound(3);
+        //logic lights, random
+        triggerI2C(10, 0);
+    }
+  
+    if (Xbox.getChatpadClick(XBOX_CHATPAD_L, 0)) {
+       //Luke message
+       Play_Sound(171); // Luke Message 26s
+       //logic lights
+       triggerI2C(10, 15);
+       //HPEvent hologram for 26s
+       FlthySerial.print("S1|26\r");
+       //FlthySerial.print("F001|26\r");
+       //magic Panel event - Cylon Row
+       triggerI2C(20, 22);
+    }
+  }
+  
+}
+
 void Play_Sound(int Track_Num) {
  
   #ifdef MP3_YX5300
@@ -906,28 +1016,5 @@ void Play_Sound(int Track_Num) {
   #else
      mp3Trigger.play(Track_Num);  
   #endif 
- 
-}
-
-void L298N_Dome_Move(int Dome_Speed_Pin,int Dome_Speed_PWM ) {
-
-  if (Dome_Direction){
-    digitalWrite(Dome_dir1_Pin,HIGH); 
-    digitalWrite(Dome_dir2_Pin,LOW);
-  //  Serial.println("High-Low");
-  } 
-  else {
-    digitalWrite(Dome_dir1_Pin,LOW); 
-    digitalWrite(Dome_dir2_Pin,HIGH);
-    Serial.println("Low-High");
-  }  
-  //Serial.println(Dome_Speed_PWM);
-  analogWrite(Dome_Speed_Pin, Dome_Speed_PWM);
-
-}
-
-void L298N_Dome_Stop() {
-
-  analogWrite(Dome_Speed_Pin, 0);
  
 }
