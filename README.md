@@ -293,7 +293,7 @@ Drive stick is now (as of 2019-11-01) on the LEFT STICK and dome control is on t
 They have been reversed from what is seen in the below controller guide.
 Set `isLeftStickDrive` in the code to false to drive with the RIGHT STICK as seen in the guide.
 
-![Button Guide](https://github.com/dankraus/padawan360/blob/master/Controller_Guide.jpg)
+![Button Guide](https://github.com/apsteven/Padawan360_1.4/blob/master/Controller_Guide.jpg)
 
 (Button layout image courtesy of LarryJ on Astromech. Thanks!)
 
